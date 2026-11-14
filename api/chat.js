@@ -1,20 +1,13 @@
 // api/chat.js — وسيط آمن (Vercel Serverless Function) بين Moon AI و Groq
-// المفتاح يُقرأ فقط من متغير البيئة GROQ_API_KEY ولا يصل للمتصفح أبدًا.
-//
-// متغيرات البيئة (Vercel › Settings › Environment Variables):
-//   GROQ_API_KEY     (إلزامي)  مفتاح Groq
-//   GROQ_MODEL       (اختياري) الافتراضي: openai/gpt-oss-120b
-//   ALLOWED_ORIGINS  (اختياري) نطاقات مسموح لها بالاتصال من موقع آخر، مفصولة بفاصلة
-//                    مثال: https://myprogress-6b9d9.web.app,https://myprogress-6b9d9.firebaseapp.com
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
 const MAX_MESSAGES = 40;
-const MAX_CONTENT = 20000;   // أقصى طول لكل رسالة
-const MAX_SYSTEM = 40000;    // أقصى طول لتعليمات النظام
+const MAX_CONTENT = 20000;   
+const MAX_SYSTEM = 40000;    
 const MAX_TOKENS = 4096;
-const RATE_LIMIT = 20;       // طلبات لكل IP في الدقيقة (بحد أقصى على نفس النسخة الدافئة)
+const RATE_LIMIT = 20;       
 const RATE_WINDOW = 60 * 1000;
 
 const hits = new Map();
@@ -42,7 +35,6 @@ function send(res, code, obj) {
 }
 
 module.exports = async function handler(req, res) {
-  // ---- CORS / فحص المصدر ----
   const origin = (req.headers.origin || '').replace(/\/$/, '');
   const allow = allowedOrigins();
   if (origin && allow.length) {
@@ -68,7 +60,6 @@ module.exports = async function handler(req, res) {
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'x').split(',')[0].trim();
   if (limited(ip)) return send(res, 429, { error: 'طلبات كثيرة، حاول بعد قليل' });
 
-  // ---- قراءة الطلب والتحقق منه ----
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch (e) { body = null; }
@@ -77,9 +68,16 @@ module.exports = async function handler(req, res) {
 
   const msgs = Array.isArray(body.messages) ? body.messages.slice(-MAX_MESSAGES) : [];
   const messages = [];
-  if (typeof body.system === 'string' && body.system.trim()) {
-    messages.push({ role: 'system', content: body.system.slice(0, MAX_SYSTEM) });
-  }
+
+  // الشخصية الافتراضية المرنة والذكية (ChatGPT style) في حال لم يتم إرسال system من الواجهة
+  const defaultSystemPrompt = "أنت Moon AI، مساعد ذكي وودود للغاية ومتعدد الاستخدامات تعمل داخل تطبيق 'My Progress'. أنت تتفاعل مع المستخدم بحرية تامة ومرونة مثل ChatGPT؛ تناقش المواضيع العامة، تجيب عن الأسئلة، تصحح الأخطاء، وتبادل أطراف الحديث بشكل طبيعي. وفي نفس الوقت أنت جاهز لمساعدة المستخدم في إدارة أهدافه، عاداته، وتمارينه الرياضية بكل احترافية عندما يطلب ذلك. كن مرنًا ومفيدًا دائمًا.";
+  
+  const systemContent = (typeof body.system === 'string' && body.system.trim()) 
+    ? body.system.slice(0, MAX_SYSTEM) 
+    : defaultSystemPrompt;
+
+  messages.push({ role: 'system', content: systemContent });
+
   for (const m of msgs) {
     if (!m || (m.role !== 'user' && m.role !== 'assistant')) continue;
     const content = typeof m.content === 'string' ? m.content.slice(0, MAX_CONTENT) : '';
@@ -93,12 +91,11 @@ module.exports = async function handler(req, res) {
     model,
     messages,
     stream,
-    temperature: 0.6,
+    temperature: 0.7, // رفعنا درجة الحرارة قليلاً ليكون الرد أكثر إبداعاً وتنوعاً وطبيعية
     max_completion_tokens: Math.min(Math.max(parseInt(body.max_tokens, 10) || 2048, 1), MAX_TOKENS),
   };
   if (/^openai\/gpt-oss/.test(model)) payload.reasoning_effort = process.env.GROQ_REASONING || 'low';
 
-  // ---- إرسال إلى Groq ----
   const ac = new AbortController();
   res.on('close', () => { if (!res.writableEnded) ac.abort(); });
 
@@ -128,15 +125,12 @@ module.exports = async function handler(req, res) {
     return send(res, 200, j);
   }
 
-  // ---- بث مباشر (SSE) كما يصل من Groq ----
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('X-Accel-Buffering', 'no');
   try {
     for await (const chunk of up.body) res.write(chunk);
-  } catch (e) {
-    // انقطاع من العميل أو من الخدمة
-  }
+  } catch (e) {}
   res.end();
 };
