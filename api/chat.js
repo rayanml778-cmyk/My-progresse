@@ -1,23 +1,45 @@
 // api/chat.js — وسيط آمن (Vercel Serverless Function) بين Moon AI و Groq
-// المفتاح يُقرأ فقط من متغير البيئة GROQ_API_KEY ولا يصل للمتصفح أبدًا.
+// محرك تدوير مفاتيح وتجاوز أعطال تلقائي بالكامل.
 //
 // متغيرات البيئة (Vercel › Settings › Environment Variables):
-//   GROQ_API_KEY     (إلزامي)  مفتاح Groq
-//   GROQ_MODEL       (اختياري) الافتراضي: openai/gpt-oss-120b
-//   GROQ_SEARCH      (اختياري) اكتب 0 لتعطيل البحث في الإنترنت (افتراضيًا مفعّل لنماذج gpt-oss)
-//   ALLOWED_ORIGINS  (اختياري) نطاقات مسموح لها بالاتصال من موقع آخر، مفصولة بفاصلة
-//                    مثال: https://myprogress-6b9d9.web.app,https://myprogress-6b9d9.firebaseapp.com
+//   GROQ_KEY_1 … GROQ_KEY_N   أي عدد من المفاتيح (بلا حد في الكود) — تُكتشف تلقائيًا عند كل طلب
+//   GROQ_API_KEY / GROQ_API_KEYS   (اختياري، للتوافق) مفتاح واحد / قائمة مفصولة بفاصلة
+//   GROQ_MODEL           الافتراضي: openai/gpt-oss-120b
+//   GROQ_SEARCH          اكتب 0 لتعطيل البحث في الإنترنت
+//   GROQ_HISTORY         آخر 2–4 رسائل تُرسل للنموذج (الافتراضي 4)
+//   GROQ_DEFAULT_TOKENS  سقف الرد الافتراضي (1024)      GROQ_MAX_TOKENS  السقف الأقصى (3072)
+//   GROQ_BACKOFF_MS      جدول الانتظار (الافتراضي 2000,4000,8000,16000)
+//   GROQ_RETRY_BUDGET_MS أقصى زمن للمحاولات قبل المحاولة الأخيرة (الافتراضي 38000)
+//   ALLOWED_ORIGINS      نطاقات مسموح لها بالاتصال من موقع آخر، مفصولة بفاصلة
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
-const MAX_MESSAGES = 40;
-const MAX_CONTENT = 20000;   // أقصى طول لكل رسالة
-const MAX_SYSTEM = 40000;    // أقصى طول لتعليمات النظام
-const MAX_TOKENS = 4096;
-const RATE_LIMIT = 20;       // طلبات لكل IP في الدقيقة (بحد أقصى على نفس النسخة الدافئة)
+const num = (v, d, lo, hi) => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
+};
+
+const MAX_HISTORY = num(process.env.GROQ_HISTORY, 4, 2, 4);
+const DEFAULT_TOKENS = num(process.env.GROQ_DEFAULT_TOKENS, 1024, 128, 4096);
+const MAX_TOKENS = num(process.env.GROQ_MAX_TOKENS, 3072, 256, 8192);
+const MAX_USER_CONTENT = 12000;
+const MAX_ASSISTANT_CONTENT = 3000;
+const MAX_SYSTEM = 40000;
+const RATE_LIMIT = 20;
 const RATE_WINDOW = 60 * 1000;
 
+const BACKOFF = String(process.env.GROQ_BACKOFF_MS || '2000,4000,8000,16000')
+  .split(',').map((x) => parseInt(x, 10)).filter((x) => x > 0);
+const RETRY_BUDGET = num(process.env.GROQ_RETRY_BUDGET_MS, 38000, 0, 55000);
+
+const Q_BASE = 30 * 1000;      // أول حجر صحي لمفتاح أصابه 429
+const Q_STEP = 15 * 1000;      // يزيد مع كل 429 متتالٍ
+const Q_MAX = 60 * 1000;       // سقف الحجر العادي
+const Q_EXHAUSTED = 15 * 60 * 1000; // مفتاح استُنفدت حصته (Retry-After طويل)
+const BAD_KEY_MS = 10 * 60 * 1000;  // مفتاح مرفوض 401/403
+
+// ---------- محدّد الطلبات لكل IP ----------
 const hits = new Map();
 function limited(ip) {
   const now = Date.now();
@@ -28,135 +50,296 @@ function limited(ip) {
   return arr.length > RATE_LIMIT;
 }
 
-function allowedOrigins() {
-  return (process.env.ALLOWED_ORIGINS || '')
-    .split(',')
-    .map((s) => s.trim().replace(/\/$/, ''))
-    .filter(Boolean);
-}
+const allowedOrigins = () =>
+  (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim().replace(/\/$/, '')).filter(Boolean);
 
+// رسائل صديقة فقط تصل للمستخدم — لا رموز HTTP ولا استثناءات ولا stack traces
+const MSG = {
+  busy: 'الخدمة مشغولة حاليًا. حاول مرة أخرى بعد لحظات.',
+  slow: 'طلبات كثيرة، حاول بعد قليل.',
+  bad: 'طلب غير صالح.',
+  conn: 'تعذّر الاتصال بخدمة الذكاء الاصطناعي.',
+  conf: 'الخدمة غير مهيّأة حاليًا.',
+  err: 'حدث خطأ مؤقت. حاول مرة أخرى.',
+};
 function send(res, code, obj) {
   if (res.headersSent) return;
   res.statusCode = code;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(obj));
 }
+const fail = (res, code, key) => send(res, code, { error: MSG[key], code: key });
 
-module.exports = async function handler(req, res) {
+// =====================================================================
+// 1) اكتشاف المفاتيح ديناميكيًا (بلا حد أقصى) + سجل الصحة
+// =====================================================================
+const clean = (v) => String(v == null ? '' : v).trim().replace(/^["']|["']$/g, '').trim();
+
+// يمسح process.env في كل طلب: أي GROQ_KEY_<عدد> يُلتقط تلقائيًا، حتى GROQ_KEY_100000
+function discoverKeys() {
+  const numbered = [];
+  for (const name of Object.keys(process.env)) {
+    const m = /^GROQ_KEY_(\d+)$/.exec(name);
+    if (!m) continue;
+    const key = clean(process.env[name]);
+    if (key) numbered.push({ n: Number(m[1]), id: name, key });
+  }
+  numbered.sort((a, b) => a.n - b.n);
+  const list = numbered.slice();
+  const legacy = [clean(process.env.GROQ_API_KEY), ...String(process.env.GROQ_API_KEYS || '').split(',').map(clean)];
+  legacy.forEach((key, i) => key && list.push({ n: Infinity, id: i ? 'GROQ_API_KEYS#' + i : 'GROQ_API_KEY', key }));
+
+  const seen = new Set();
+  const out = list.filter((x) => !seen.has(x.key) && seen.add(x.key));
+  const live = new Set(out.map((x) => x.key));
+  for (const k of registry.keys()) if (!live.has(k)) registry.delete(k); // مفاتيح أُزيلت من البيئة
+  out.forEach((x) => { H(x.key).id = x.id; });
+  return out.map((x) => x.key);
+}
+
+// سجل الصحة في ذاكرة النسخة الدافئة
+const registry = new Map();
+function H(key) {
+  let h = registry.get(key);
+  if (!h) {
+    h = { id: '?', fails: 0, rl: 0, rl429: 0, until: 0, bad: 0, last: 0, inflight: 0, ok: 0 };
+    registry.set(key, h);
+  }
+  return h;
+}
+const healthy = (k, now) => H(k).until <= now && H(k).bad <= now;
+
+function onSuccess(k) {
+  const h = H(k);
+  h.fails = 0; h.rl = 0; h.until = 0; h.ok++;
+}
+function onRateLimited(k, retryAfter) {
+  const h = H(k);
+  h.rl++; h.rl429++; h.fails++;
+  let ms = Math.min(Q_BASE + (h.rl - 1) * Q_STEP, Q_MAX); // 30s → 45s → 60s
+  if (retryAfter > Q_MAX) ms = Math.min(retryAfter, Q_EXHAUSTED); // حصة يومية مستنفدة
+  else ms = Math.max(ms, retryAfter);
+  h.until = Date.now() + ms;
+  console.warn('[moon] quarantine', h.id, Math.round(ms / 1000) + 's', '(429 x' + h.rl + ')');
+}
+function onFault(k) {
+  const h = H(k);
+  h.fails++;
+  h.until = Date.now() + Math.min(2000 * 2 ** Math.min(h.fails, 5), Q_MAX); // 4s … 60s
+}
+function onBadKey(k, status) {
+  H(k).bad = Date.now() + BAD_KEY_MS;
+  console.error('[moon] key rejected', H(k).id, status);
+}
+
+// اختيار موزون عشوائي بين المفاتيح السليمة: يفضّل الأقل انشغالًا والأقدم استخدامًا والأقل أعطالًا
+function pickKey(pool, tried, force) {
+  const now = Date.now();
+  let c = pool.filter((k) => !tried.has(k) && (force ? H(k).bad <= now : healthy(k, now)));
+  if (force && !c.length) c = pool.filter((k) => !tried.has(k)); // كلها مرفوضة؟ جرّبها على أي حال
+  if (!c.length) return null;
+  const w = c.map((k) => {
+    const h = H(k);
+    return (1 + Math.min((now - h.last) / 5000, 4)) / (1 + h.inflight + 0.5 * h.fails);
+  });
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < c.length; i++) if ((r -= w[i]) <= 0) return c[i];
+  return c[c.length - 1];
+}
+const soonest = (pool, tried) =>
+  pool.filter((k) => !tried.has(k) && H(k).bad <= Date.now()).sort((a, b) => H(a).until - H(b).until)[0] || null;
+
+const retryAfterMs = (r) => {
+  const v = parseFloat(r.headers.get('retry-after'));
+  return Number.isFinite(v) && v > 0 ? v * 1000 : 0;
+};
+const drain = (r) => { try { r.body && r.body.cancel && r.body.cancel(); } catch (e) {} };
+const sleep = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    if (signal.aborted) return reject(new Error('aborted'));
+    const t = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, ms);
+    const onAbort = () => { clearTimeout(t); reject(new Error('aborted')); };
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+
+// =====================================================================
+// 2+3) استدعاء Groq: توزيع الحمل، حجر صحي صامت، تجاوز فوري، backoff أُسّي
+// يعيد { res, key } (ناجح أو 4xx غير قابل لإعادة المحاولة) أو null عند الاستنفاد.
+// opts.retries: عدد جولات الانتظار | opts.force: تجاهل الحجر الصحي | opts.deadline: مهلة زمنية مطلقة
+// =====================================================================
+async function callGroq(payload, pool, signal, opts = {}) {
+  const retries = opts.retries == null ? BACKOFF.length : opts.retries;
+  const body = JSON.stringify(payload);
+  for (let round = 0; round <= retries; round++) {
+    const tried = new Set();
+    let probed = false;
+    for (;;) {
+      if (signal.aborted) throw new Error('aborted');
+      let key = pickKey(pool, tried, opts.force);
+      if (!key) {
+        // لا مفتاح سليم: في أول المحاولة نفحص المفتاح الأقرب للتعافي بدل ترك الطلب يفشل
+        if (!tried.size && !probed) { key = soonest(pool, tried); probed = true; }
+        if (!key) break;
+      }
+      tried.add(key);
+      const h = H(key);
+      h.inflight++; h.last = Date.now();
+      let r;
+      try {
+        r = await fetch(GROQ_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+          body,
+          signal,
+        });
+      } catch (e) {
+        h.inflight--;
+        if (signal.aborted) throw e;
+        onFault(key);
+        continue;
+      }
+      if (r.ok) { onSuccess(key); return { res: r, key }; } // inflight يُحرَّر عند انتهاء الرد
+      h.inflight--;
+      if (r.status === 429) { onRateLimited(key, retryAfterMs(r)); drain(r); continue; }
+      if (r.status === 401 || r.status === 403) { onBadKey(key, r.status); drain(r); continue; }
+      if (r.status >= 500 || r.status === 408 || r.status === 498) { onFault(key); drain(r); continue; }
+      return { res: r, key: null }; // 4xx آخر: يعالجه المستدعي
+    }
+    if (round >= retries) break;
+    const wait = BACKOFF[Math.min(round, BACKOFF.length - 1)];
+    if (opts.deadline && Date.now() + wait > opts.deadline) break; // لا نتجاوز ميزانية الوقت
+    await sleep(wait, signal); // 2s → 4s → 8s → 16s
+  }
+  return null;
+}
+
+// حمولة خفيفة للمحاولة الأخيرة: بلا أدوات بحث، بلا بيانات سياق التطبيق، آخر رسالتين فقط، سقف أقل
+function leanPayload(p) {
+  const msgs = p.messages.filter((m) => m.role !== 'system').slice(-2);
+  while (msgs.length && msgs[0].role !== 'user') msgs.shift();
+  const sys = p.messages.find((m) => m.role === 'system');
+  const out = { ...p, messages: [], max_completion_tokens: Math.min(p.max_completion_tokens, 1024) };
+  delete out.tools; delete out.tool_choice;
+  if (out.reasoning_effort) out.reasoning_effort = 'low';
+  if (sys) out.messages.push({ role: 'system', content: sys.content.split('\n\n[APP CONTEXT]')[0] });
+  out.messages.push(...msgs);
+  return out;
+}
+
+async function handle(req, res) {
   // ---- CORS / فحص المصدر ----
   const origin = (req.headers.origin || '').replace(/\/$/, '');
   const allow = allowedOrigins();
   if (origin && allow.length) {
-    if (!allow.includes(origin)) return send(res, 403, { error: 'Origin not allowed' });
+    if (!allow.includes(origin)) return send(res, 403, { error: MSG.err, code: 'origin' });
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Access-Control-Max-Age', '86400');
   }
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    return res.end();
-  }
+  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, OPTIONS');
-    return send(res, 405, { error: 'Method not allowed' });
+    return send(res, 405, { error: MSG.err, code: 'method' });
   }
 
-  const key = process.env.GROQ_API_KEY;
-  if (!key) return send(res, 500, { error: 'الخادم غير مهيّأ: GROQ_API_KEY غير موجود' });
+  const pool = discoverKeys(); // يُعاد المسح في كل طلب: المفاتيح الجديدة تدخل التدوير فورًا
+  if (!pool.length) {
+    console.error('[moon] no GROQ_KEY_n configured');
+    return fail(res, 500, 'conf');
+  }
 
   const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'x').split(',')[0].trim();
-  if (limited(ip)) return send(res, 429, { error: 'طلبات كثيرة، حاول بعد قليل' });
+  if (limited(ip)) return fail(res, 429, 'slow');
 
-  // ---- قراءة الطلب والتحقق منه ----
   let body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch (e) { body = null; }
-  }
-  if (!body || typeof body !== 'object') return send(res, 400, { error: 'طلب غير صالح' });
+  if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
+  if (!body || typeof body !== 'object') return fail(res, 400, 'bad');
 
-  const msgs = Array.isArray(body.messages) ? body.messages.slice(-MAX_MESSAGES) : [];
+  const valid = [];
+  for (const m of Array.isArray(body.messages) ? body.messages : []) {
+    if (!m || (m.role !== 'user' && m.role !== 'assistant')) continue;
+    const lim = m.role === 'user' ? MAX_USER_CONTENT : MAX_ASSISTANT_CONTENT;
+    const content = typeof m.content === 'string' ? m.content.slice(0, lim) : '';
+    if (content) valid.push({ role: m.role, content });
+  }
+  const recent = valid.slice(-MAX_HISTORY);
+  while (recent.length && recent[0].role !== 'user') recent.shift();
+  if (!recent.length) return fail(res, 400, 'bad');
+
   const messages = [];
   if (typeof body.system === 'string' && body.system.trim()) {
     messages.push({ role: 'system', content: body.system.slice(0, MAX_SYSTEM) });
   }
-  for (const m of msgs) {
-    if (!m || (m.role !== 'user' && m.role !== 'assistant')) continue;
-    const content = typeof m.content === 'string' ? m.content.slice(0, MAX_CONTENT) : '';
-    if (content) messages.push({ role: m.role, content });
-  }
-  if (!messages.some((m) => m.role === 'user')) return send(res, 400, { error: 'لا توجد رسالة' });
+  messages.push(...recent);
 
   const model = process.env.GROQ_MODEL || DEFAULT_MODEL;
   const stream = body.stream === true;
   const payload = {
-    model,
-    messages,
-    stream,
-    temperature: 0.6,
-    max_completion_tokens: Math.min(Math.max(parseInt(body.max_tokens, 10) || 2048, 1), MAX_TOKENS),
+    model, messages, stream, temperature: 0.5,
+    max_completion_tokens: num(body.max_tokens, DEFAULT_TOKENS, 1, MAX_TOKENS),
   };
   const isOss = /^openai\/gpt-oss/.test(model);
   if (isOss) {
-    const eff = ['low', 'medium', 'high'].includes(body.effort) ? body.effort : (process.env.GROQ_REASONING || 'low');
-    payload.reasoning_effort = eff;
+    payload.reasoning_effort = ['low', 'medium', 'high'].includes(body.effort) ? body.effort : (process.env.GROQ_REASONING || 'low');
   }
-  // البحث في الإنترنت (أداة browser_search المدمجة في Groq لنماذج gpt-oss) — يقرر النموذج متى يستخدمها
   const wantSearch = body.search === true && isOss && process.env.GROQ_SEARCH !== '0';
-  if (wantSearch) {
-    payload.tools = [{ type: 'browser_search' }];
-    payload.tool_choice = 'auto';
-  }
+  const full = wantSearch ? { ...payload, tools: [{ type: 'browser_search' }], tool_choice: 'auto' } : payload;
 
-  // ---- إرسال إلى Groq ----
   const ac = new AbortController();
   res.on('close', () => { if (!res.writableEnded) ac.abort(); });
 
-  const call = (pl) => fetch(GROQ_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-    body: JSON.stringify(pl),
-    signal: ac.signal,
-  });
-
-  let up;
+  let up = null;
   try {
-    up = await call(payload);
-    // إن رفضت الخدمة أداة البحث (نموذج/حساب لا يدعمها) نعيد الطلب بدونها حتى لا تتعطل المحادثة
-    if (!up.ok && wantSearch && up.status >= 400 && up.status < 500 && up.status !== 429) {
-      const p2 = { ...payload };
-      delete p2.tools;
-      delete p2.tool_choice;
-      up = await call(p2);
+    const deadline = Date.now() + RETRY_BUDGET;
+    up = await callGroq(full, pool, ac.signal, { deadline });
+    // أداة البحث مرفوضة (نموذج/حساب لا يدعمها): أعد بدونها
+    if (up && !up.res.ok && wantSearch && [400, 404, 422].includes(up.res.status)) {
+      drain(up.res);
+      up = await callGroq(payload, pool, ac.signal, { deadline });
+    }
+    // السلسلة الأخيرة: استُنفدت كل المفاتيح والمحاولات → حمولة خفيفة تُمرَّر قسرًا عبر كل المفاتيح
+    if (!up) {
+      console.warn('[moon] all keys drained — lean fallback');
+      up = await callGroq(leanPayload(payload), pool, ac.signal, { retries: 0, force: true });
     }
   } catch (e) {
-    return send(res, 502, { error: 'تعذّر الاتصال بخدمة الذكاء الاصطناعي' });
+    if (ac.signal.aborted) return;
+    console.error('[moon] upstream failure:', e && e.message);
+    return fail(res, 502, 'conn');
   }
 
-  if (!up.ok) {
-    let msg = 'خطأ من الخدمة (' + up.status + ')';
-    try {
-      const j = await up.json();
-      if (j && j.error && j.error.message) msg = j.error.message;
-    } catch (e) {}
-    return send(res, up.status === 429 ? 429 : 502, { error: msg });
-  }
+  if (!up) return fail(res, 503, 'busy'); // كل المفاتيح مستنزفة تمامًا
 
-  if (!stream) {
-    const j = await up.json();
-    return send(res, 200, j);
-  }
-
-  // ---- بث مباشر (SSE) كما يصل من Groq ----
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('X-Accel-Buffering', 'no');
+  const release = () => { if (up.key) { const h = H(up.key); if (h.inflight > 0) h.inflight--; } };
   try {
-    for await (const chunk of up.body) res.write(chunk);
-  } catch (e) {
-    // انقطاع من العميل أو من الخدمة
+    if (!up.res.ok) {
+      let detail = '';
+      try { detail = ((await up.res.json()).error || {}).message || ''; } catch (e) {}
+      console.error('[moon] upstream error', up.res.status, String(detail).slice(0, 300));
+      return up.res.status === 413 ? fail(res, 413, 'bad') : fail(res, 502, 'err');
+    }
+    if (!stream) {
+      try { return send(res, 200, await up.res.json()); } catch (e) { return fail(res, 502, 'err'); }
+    }
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
+    try { for await (const chunk of up.res.body) res.write(chunk); } catch (e) { /* انقطاع */ }
+    res.end();
+  } finally {
+    release();
   }
-  res.end();
+}
+
+module.exports = async function handler(req, res) {
+  try {
+    await handle(req, res);
+  } catch (e) { // شبكة أمان أخيرة: لا استثناءات ولا stack traces للمستخدم
+    console.error('[moon] unhandled:', e && e.stack);
+    try { if (!res.headersSent) fail(res, 500, 'err'); else res.end(); } catch (x) {}
+  }
 };
+module.exports._test = { discoverKeys, registry };
