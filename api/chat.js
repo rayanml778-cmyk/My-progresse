@@ -6,7 +6,7 @@
 //   GROQ_API_KEY / GROQ_API_KEYS   (اختياري، للتوافق) مفتاح واحد / قائمة مفصولة بفاصلة
 //   GROQ_MODEL           الافتراضي: openai/gpt-oss-120b
 //   GROQ_SEARCH          اكتب 0 لتعطيل البحث في الإنترنت
-//   GROQ_HISTORY         آخر 2–4 رسائل تُرسل للنموذج (الافتراضي 4)
+//   GROQ_HISTORY         آخر 2–10 رسائل تُرسل للنموذج (الافتراضي 6)
 //   GROQ_DEFAULT_TOKENS  سقف الرد الافتراضي (1024)      GROQ_MAX_TOKENS  السقف الأقصى (3072)
 //   GROQ_BACKOFF_MS      جدول الانتظار (الافتراضي 2000,4000,8000,16000)
 //   GROQ_RETRY_BUDGET_MS أقصى زمن للمحاولات قبل المحاولة الأخيرة (الافتراضي 38000)
@@ -20,7 +20,7 @@ const num = (v, d, lo, hi) => {
   return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d;
 };
 
-const MAX_HISTORY = num(process.env.GROQ_HISTORY, 4, 2, 4);
+const MAX_HISTORY = num(process.env.GROQ_HISTORY, 6, 2, 10);
 const DEFAULT_TOKENS = num(process.env.GROQ_DEFAULT_TOKENS, 1024, 128, 4096);
 const MAX_TOKENS = num(process.env.GROQ_MAX_TOKENS, 3072, 256, 8192);
 const MAX_USER_CONTENT = 12000;
@@ -277,7 +277,8 @@ async function handle(req, res) {
   const model = process.env.GROQ_MODEL || DEFAULT_MODEL;
   const stream = body.stream === true;
   const payload = {
-    model, messages, stream, temperature: 0.5,
+    model, messages, stream,
+    temperature: (typeof body.temperature === 'number' && Number.isFinite(body.temperature)) ? Math.min(1, Math.max(0, body.temperature)) : 0.5,
     max_completion_tokens: num(body.max_tokens, DEFAULT_TOKENS, 1, MAX_TOKENS),
   };
   const isOss = /^openai\/gpt-oss/.test(model);
