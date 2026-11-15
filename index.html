@@ -1190,6 +1190,7 @@ KEEPING THE APP IN SYNC (very important)
   set_theme {family?: "gold" | "blue" | "pink" | "red", mode?: "dark" | "light"}
   where day is an English lowercase weekday: sunday, monday, tuesday, wednesday, thursday, friday, saturday.
 - Theme: the app has four colour families (gold, blue, pink, red), each in dark and light mode. "Pink theme" → {"op":"set_theme","family":"pink"}; "light mode" → {"op":"set_theme","mode":"light"}; "dark red" → family red + mode dark. Omit a field the user did not specify so the current value is kept. Never invent another family or mode.
+- Theme requests are executed by the app itself the moment the user sends them, so most of the time they never need your help. If one reaches you anyway, you MUST emit the set_theme op in that same reply. NEVER write that the theme was changed, or that anything else in the app was changed, unless you emitted the matching op in that reply or a system note says the app already applied it. Without the op nothing changes, and claiming it does is a serious error.
 - Tasks have a date and a text only: there is no time field and no alarm. If the user gives a time, put it in the task text (for example "Call the doctor — 18:00"). Never promise a notification or alert that the app cannot send.
 - The weekly plan is visible in the app only while the custom program is active (the app switches to it automatically when the custom plan was empty).
 - After the user adds a custom exercise, remind them they can tap the sparkle button next to its name to generate its illustration.
@@ -1339,7 +1340,29 @@ try{const o=JSON.parse(j);MU.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});a.forEa
 const MG=/إعراب|اعرب|أعرب|نحو|النحو|صرف|الصرف|تصريف|بلاغ|استعار|كناي|تشبيه|جزم|الفاعل|المفعول|مبتدأ|خبر|تمييز|الممنوع من الصرف|لا النافية|كاد وأخواتها|نعم وبئس|وزن|مشتق|الجذر|حروف الزيادة|grammar|syntax|parse|conjugat|morpholog|grammaire|conjugu|syntaxe/i,
 MR=/\d\s*[-+*\/^=×÷]\s*\d|معادلة|برهن|أثبت|احسب|حساب|مشتق|تكامل|احتمال|قيمة|solve|prove|equation|integral|derivative|probability|calcul|résou|démontr|équation|bug|debug|stack ?trace|regex|algorithm|code|برمج|كود|خوارزمية|سعرة|kcal|macro/i;
 const mprof=t=>{t=String(t||'');if(MG.test(t))return{g:1,effort:'medium',temp:0.1,max:2400};if(MR.test(t))return{effort:'medium',temp:0.2,max:2000};return{temp:0.4,max:1200}};
+/* ---- Local theme command: the app applies it itself, never trusting the model to do it ---- */
+const MTN=s=>String(s||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'),
+MB='(?:^|[^a-z\\u0621-\\u064A])(?:ال|لل|بال|وال|ل|ب|و)?',
+mk=(ar,la)=>new RegExp(MB+'(?:(?:'+ar+')[\\u0621-\\u064A]{0,2}(?![\\u0621-\\u064A])'+(la?'|(?:'+la+')\\b':'')+')'),
+MFAM={gold:mk('ذهب','gold|golden|dore|doree'),blue:mk('ازرق|زرق','blue|bleu|bleue'),pink:mk('وردي|زهري','pink|rose'),red:mk('احمر|حمر','red|rouge')},
+MMOD={dark:mk('داكن|مظلم|ليلي|غامق','dark|sombre'),light:mk('فاتح|نهاري|ساطع|مضيء','light|clair')},
+MTV=mk('غير|بدل|حول|اجعل|خلي|فعل|ضع|حط|شغل|عدل|تغيير|تبديل','change|switch|set|make|turn|apply|use|put|mets|mettre|passe|active|applique'),
+MTWANT=mk('اريد|ابي|ابغي|بدي|عايز','want|wanna|veux'),
+MTW=mk('ثيم|تيم|لون|الوان|وضع|مظهر|تصميم','theme|thème|color|colour|mode|couleur'),
+MFN={gold:['ذهبي','Gold','doré'],blue:['أزرق','Blue','bleu'],pink:['وردي','Pink','rose'],red:['أحمر','Red','rouge']},
+MMN={dark:['داكن','dark','sombre'],light:['فاتح','light','clair']};
+function mtheme(txt){const n=MTN(txt),w=n.split(/\s+/).filter(Boolean).length;
+if(!w||w>12||/[?؟]/.test(n)||/(^|\s)(كيف|لماذا|ليش|هل|ماذا|what|why|how|comment|pourquoi)(\s|$)/.test(n)||/css|html|code|كود|برمج/.test(n))return null;
+const f=Object.keys(MFAM).find(k=>MFAM[k].test(n)),m=Object.keys(MMOD).find(k=>MMOD[k].test(n));
+if(!f&&!m)return null;const tw=MTW.test(n);
+if(!((MTV.test(n)&&(tw||w<=5))||(MTWANT.test(n)&&tw)))return null;
+const c=normTheme(S.theme).split('-');return{f:f||c[0],m:m||c[1]}}
+function mlocal(txt,tc){const mo=moon();let ss=mo.ss.find(x=>x.id==mo.cur);if(!ss){ss={id:uid(),t:txt.replace(/\s+/g,' ').slice(0,42),u:Date.now(),m:[],sum:''};mo.ss.unshift(ss);mo.cur=ss.id}
+const L=LANG=='en'?1:LANG=='fr'?2:0,nm=MFN[tc.f][L]+' '+MMN[tc.m][L];
+ss.m.push({r:'u',c:txt},{r:'a',c:(L==1?'Theme changed to ':L==2?'Thème changé : ':'تم تغيير الثيم إلى ')+nm+'.',acts:[{k:'set_theme',n:''}]});
+ss.u=Date.now();MD='';MS.sc=1;mtrim();save();setTheme(tc.f,tc.m)}
 async function moonSend(txt){txt=String(txt||'').trim();if(!txt||MS.busy)return;
+const tc=mtheme(txt);if(tc){mlocal(txt,tc);return}
 const mo=moon();let ss=mo.ss.find(x=>x.id==mo.cur);if(!ss){ss={id:uid(),t:txt.replace(/\s+/g,' ').slice(0,42),u:Date.now(),m:[],sum:''};mo.ss.unshift(ss);mo.cur=ss.id}
 ss.m.push({r:'u',c:txt});const am={r:'a',c:'',p:1};ss.m.push(am);ss.u=Date.now();MD='';MS.busy=1;MS.ac=new AbortController();MS.sc=1;render();
 const pf=mprof(txt);try{const raw=await mapi({system:msys(ss),messages:mhist(ss),search:mo.web!==0&&!pf.g,effort:pf.effort,temp:pf.temp,max:pf.max},t=>{am.c=t;mdom(am)},MS.ac);
