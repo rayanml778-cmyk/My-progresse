@@ -17,6 +17,7 @@
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
 const { verify: verifyPlan } = require('./_plan');
+const { verifyIdToken, saReady, usage, remaining, cost, charge } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
@@ -112,11 +113,13 @@ const MSG = {
   err: 'حدث خطأ مؤقت. حاول مرة أخرى.',
   plan: 'هذه الميزة متاحة في بريميوم وبرو.',
   quota: 'انتهت حصتك اليومية.',
+  auth: 'سجّل الدخول أولًا.',
 };
 function send(res, code, obj) {
   if (res.headersSent) return;
   res.statusCode = code;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(obj));
 }
 const fail = (res, code, key) => send(res, code, { error: MSG[key], code: key });
@@ -308,12 +311,25 @@ async function handle(req, res) {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
   if (!body || typeof body !== 'object') return fail(res, 400, 'bad');
 
-  const pinfo = verifyPlan(body.pt);
+  // الهوية: Firebase ID token إلزامي (REQUIRE_AUTH=0 لتعطيله). الرمز المرتبط بحساب آخر يُعامل كمجاني
+  let uid = null;
+  if (process.env.REQUIRE_AUTH !== '0') {
+    uid = await verifyIdToken(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
+    if (!uid) return fail(res, 401, 'auth');
+  }
+  let pinfo = verifyPlan(body.pt);
+  if (pinfo && (pinfo.u ? pinfo.u !== uid : process.env.ALLOW_LEGACY_TOKENS !== '1')) pinfo = null;
   const plan = pinfo ? pinfo.p : 'free';
   const cfg = PLAN_CFG[plan];
-  const tutor = body.tutor === true;
+  const tutor = body.tutor === true || ['ar', 'fr', 'en'].includes(body.tutor); // التطبيق يرسل رمز لغة المعلّم
   if (tutor && plan === 'free') return fail(res, 403, 'plan');
   if (plan === 'free' && freeDaily(ip)) return fail(res, 429, 'quota');
+  // الرصيد من جهة الخادم (Firestore): لا يتأثر بمسح المتصفح أو بتعديل الواجهة
+  let U = null;
+  if (uid && saReady()) {
+    U = await usage(uid, pinfo ? pinfo.i : 0);
+    if (U && remaining(U, plan, pinfo && pinfo.k, tutor) <= 0) return fail(res, 429, 'quota');
+  }
 
   const valid = [];
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
@@ -326,6 +342,7 @@ async function handle(req, res) {
   while (recent.length && recent[0].role !== 'user') recent.shift();
   if (!recent.length) return fail(res, 400, 'bad');
 
+  const bill = async (o) => { if (!U) return; try { await charge(U, uid, plan, tutor, cost(recent[recent.length - 1].content.length, o)); } catch (e) { console.error('[bill]', e && e.message); } };
   const messages = [];
   if (typeof body.system === 'string' && body.system.trim()) {
     messages.push({ role: 'system', content: body.system.slice(0, MAX_SYSTEM) });
@@ -382,7 +399,8 @@ async function handle(req, res) {
   // كل المفاتيح مشغولة الآن: الواجهة لا تعرض خطأ، بل تنتظر بصمت وتعيد المحاولة تلقائيًا حتى يتحرر مفتاح
   if (!up) { res.setHeader('Retry-After', '4'); return fail(res, 503, 'busy'); }
 
-  const release = () => { if (up.key) { const h = H(up.key); if (h.inflight > 0) h.inflight--; } };
+  // ملاحظة: كان اسمه release فيحجب دالة release(limit) العامة، فلا تُحرَّر خانة التزامن أبدًا ويتحول الخادم إلى «مشغول»
+  const releaseKey = () => { if (up.key) { const h = H(up.key); if (h.inflight > 0) h.inflight--; } };
   try {
     if (!up.res.ok) {
       let detail = '';
@@ -391,16 +409,27 @@ async function handle(req, res) {
       return up.res.status === 413 ? fail(res, 413, 'bad') : fail(res, 502, 'err');
     }
     if (!stream) {
-      try { return send(res, 200, await up.res.json()); } catch (e) { return fail(res, 502, 'err'); }
+      try { const j = await up.res.json(); await bill((((j.choices || [])[0] || {}).message || {}).content ? j.choices[0].message.content.length : 0); return send(res, 200, j); } catch (e) { return fail(res, 502, 'err'); }
     }
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('X-Accel-Buffering', 'no');
-    try { for await (const chunk of up.res.body) res.write(chunk); } catch (e) { /* انقطاع */ }
+    let sb = '', oc = 0; const td = new TextDecoder();
+    try {
+      for await (const chunk of up.res.body) {
+        res.write(chunk); sb += td.decode(chunk, { stream: true });
+        let i; while ((i = sb.indexOf('\n')) >= 0) {
+          const ln = sb.slice(0, i).trim(); sb = sb.slice(i + 1);
+          if (ln.startsWith('data:')) { try { const d = JSON.parse(ln.slice(5)); oc += (((d.choices || [])[0] || {}).delta || {}).content ? d.choices[0].delta.content.length : 0; } catch (e) {} }
+        }
+      }
+    } catch (e) { /* انقطاع */ }
     res.end();
+    await bill(oc);
   } finally {
-    release();
+    releaseKey();
+    free(); // تحرير خانة التزامن فور انتهاء الرد (وليس فقط عند حدث close)
   }
 }
 
