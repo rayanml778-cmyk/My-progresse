@@ -1,6 +1,6 @@
 // MY PROGRESS service worker
 // غيّر رقم VERSION عند كل نشر لتحديث التطبيق المثبت تلقائيًا
-const VERSION = 'v13';
+const VERSION = 'v14';
 const CACHE = 'mp-' + VERSION;
 
 self.addEventListener('install', () => {
