@@ -3,7 +3,6 @@
 //
 // متغيرات البيئة (Vercel › Settings › Environment Variables):
 //   GROQ_KEY_1 … GROQ_KEY_N   أي عدد من المفاتيح (بلا حد في الكود) — تُكتشف تلقائيًا عند كل طلب
-//   GROQ_API_KEY / GROQ_API_KEYS   (اختياري، للتوافق) مفتاح واحد / قائمة مفصولة بفاصلة
 //   GROQ_MODEL           الافتراضي: openai/gpt-oss-20b
 //   GROQ_SEARCH          اكتب 0 لتعطيل البحث في الإنترنت
 //   GROQ_HISTORY         آخر 2–10 رسائل تُرسل للنموذج (الافتراضي 6)
@@ -140,8 +139,6 @@ function discoverKeys() {
   }
   numbered.sort((a, b) => a.n - b.n);
   const list = numbered.slice();
-  const legacy = [clean(process.env.GROQ_API_KEY), ...String(process.env.GROQ_API_KEYS || '').split(',').map(clean)];
-  legacy.forEach((key, i) => key && list.push({ n: Infinity, id: i ? 'GROQ_API_KEYS#' + i : 'GROQ_API_KEY', key }));
 
   const seen = new Set();
   const out = list.filter((x) => !seen.has(x.key) && seen.add(x.key));
