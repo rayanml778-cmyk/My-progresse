@@ -4,7 +4,7 @@
 // متغيرات البيئة (Vercel › Settings › Environment Variables):
 //   GROQ_KEY_1 … GROQ_KEY_N   أي عدد من المفاتيح (بلا حد في الكود) — تُكتشف تلقائيًا عند كل طلب
 //   GROQ_API_KEY / GROQ_API_KEYS   (اختياري، للتوافق) مفتاح واحد / قائمة مفصولة بفاصلة
-//   GROQ_MODEL           الافتراضي: openai/gpt-oss-120b
+//   GROQ_MODEL           الافتراضي: openai/gpt-oss-20b
 //   GROQ_SEARCH          اكتب 0 لتعطيل البحث في الإنترنت
 //   GROQ_HISTORY         آخر 2–10 رسائل تُرسل للنموذج (الافتراضي 6)
 //   GROQ_DEFAULT_TOKENS  سقف الرد الافتراضي (1024)      GROQ_MAX_TOKENS  السقف الأقصى (3072)
@@ -19,7 +19,7 @@
 const { verify: verifyPlan } = require('./_plan');
 const { verifyIdToken, saReady, usage, remaining, cost, charge } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'openai/gpt-oss-120b';
+const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
 const num = (v, d, lo, hi) => {
   const n = parseInt(v, 10);
