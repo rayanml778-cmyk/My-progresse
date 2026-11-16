@@ -8,10 +8,15 @@
 //   GROQ_SEARCH          اكتب 0 لتعطيل البحث في الإنترنت
 //   GROQ_HISTORY         آخر 2–10 رسائل تُرسل للنموذج (الافتراضي 6)
 //   GROQ_DEFAULT_TOKENS  سقف الرد الافتراضي (1024)      GROQ_MAX_TOKENS  السقف الأقصى (3072)
-//   GROQ_BACKOFF_MS      جدول الانتظار (الافتراضي 2000,4000,8000,16000)
-//   GROQ_RETRY_BUDGET_MS أقصى زمن للمحاولات قبل المحاولة الأخيرة (الافتراضي 38000)
+//   GROQ_BACKOFF_MS      جدول الانتظار بين جولات التدوير (الافتراضي 1500,2500,4000,6000,8000,10000)
+//   GROQ_RETRY_BUDGET_MS أقصى زمن للمحاولات قبل المحاولة الأخيرة (الافتراضي 48000)
 //   ALLOWED_ORIGINS      نطاقات مسموح لها بالاتصال من موقع آخر، مفصولة بفاصلة
+//   DEV_CODE_HASH        SHA-256 لكود التفعيل (يستخدمه api/activate.js ويوقّع به رموز الباقات)
+//   PLAN_SECRET          (اختياري) سر توقيع مستقل؛ وإلا يُستخدم DEV_CODE_HASH
+//   GROQ_CONCURRENCY     أقصى طلبات متزامنة لكل نسخة (الافتراضي: عدد المفاتيح × 2)
+//   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
+const { verify: verifyPlan } = require('./_plan');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-120b';
 
@@ -26,16 +31,16 @@ const MAX_TOKENS = num(process.env.GROQ_MAX_TOKENS, 3072, 256, 8192);
 const MAX_USER_CONTENT = 12000;
 const MAX_ASSISTANT_CONTENT = 3000;
 const MAX_SYSTEM = 40000;
-const RATE_LIMIT = 20;
+const RATE_LIMIT = 40;
 const RATE_WINDOW = 60 * 1000;
 
-const BACKOFF = String(process.env.GROQ_BACKOFF_MS || '2000,4000,8000,16000')
+const BACKOFF = String(process.env.GROQ_BACKOFF_MS || '1500,2500,4000,6000,8000,10000')
   .split(',').map((x) => parseInt(x, 10)).filter((x) => x > 0);
-const RETRY_BUDGET = num(process.env.GROQ_RETRY_BUDGET_MS, 38000, 0, 55000);
+const RETRY_BUDGET = num(process.env.GROQ_RETRY_BUDGET_MS, 48000, 0, 55000);
 
-const Q_BASE = 30 * 1000;      // أول حجر صحي لمفتاح أصابه 429
-const Q_STEP = 15 * 1000;      // يزيد مع كل 429 متتالٍ
-const Q_MAX = 60 * 1000;       // سقف الحجر العادي
+const Q_BASE = 15 * 1000;      // أول حجر صحي لمفتاح أصابه 429
+const Q_STEP = 10 * 1000;      // يزيد مع كل 429 متتالٍ
+const Q_MAX = 45 * 1000;       // سقف الحجر العادي
 const Q_EXHAUSTED = 15 * 60 * 1000; // مفتاح استُنفدت حصته (Retry-After طويل)
 const BAD_KEY_MS = 10 * 60 * 1000;  // مفتاح مرفوض 401/403
 
@@ -50,6 +55,50 @@ function limited(ip) {
   return arr.length > RATE_LIMIT;
 }
 
+
+// ---------- الباقات: سقوف وأولوية ----------
+const PLAN_CFG = {
+  free:    { pri: 0, cap: 600,  tutorCap: 0,    maxEff: 0, eff: 'low' },
+  premium: { pri: 1, cap: 1400, tutorCap: 1600, maxEff: 1, eff: 'low' },
+  pro:     { pri: 2, cap: 3072, tutorCap: 2200, maxEff: 2, eff: 'medium' },
+};
+const EFF = ['low', 'medium', 'high'];
+
+// بوابة أولوية: برو ثم بريميوم ثم المجاني (مع تقادم 10 ثوانٍ يعادل درجة كاملة كي لا يُجوَّع أحد)
+const waitq = [];
+let active = 0;
+function pump(limit) {
+  while (active < limit && waitq.length) {
+    const now = Date.now();
+    waitq.sort((a, b) => (b.pri * 10000 + now - b.t) - (a.pri * 10000 + now - a.t));
+    const w = waitq.shift();
+    clearTimeout(w.timer);
+    active++;
+    w.resolve(true);
+  }
+}
+function acquire(pri, limit, signal, maxWait) {
+  return new Promise((resolve, reject) => {
+    if (active < limit && !waitq.length) { active++; return resolve(true); }
+    const w = { pri, t: Date.now(), resolve };
+    w.timer = setTimeout(() => { const i = waitq.indexOf(w); if (i >= 0) waitq.splice(i, 1); resolve(false); }, maxWait);
+    signal.addEventListener('abort', () => { clearTimeout(w.timer); const i = waitq.indexOf(w); if (i >= 0) waitq.splice(i, 1); reject(new Error('aborted')); }, { once: true });
+    waitq.push(w);
+  });
+}
+function release(limit) { active = Math.max(0, active - 1); pump(limit); }
+
+// حماية احتياطية للمجاني (ذاكرة النسخة الدافئة فقط؛ الحصة الفعلية تُحسب داخل التطبيق)
+const dayHits = new Map();
+function freeDaily(ip) {
+  const day = new Date().toISOString().slice(0, 10);
+  const k = day + '|' + ip;
+  const n = (dayHits.get(k) || 0) + 1;
+  dayHits.set(k, n);
+  if (dayHits.size > 8000) dayHits.clear();
+  return n > num(process.env.FREE_DAILY_REQ, 300, 20, 100000);
+}
+
 const allowedOrigins = () =>
   (process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim().replace(/\/$/, '')).filter(Boolean);
 
@@ -61,6 +110,8 @@ const MSG = {
   conn: 'تعذّر الاتصال بخدمة الذكاء الاصطناعي.',
   conf: 'الخدمة غير مهيّأة حاليًا.',
   err: 'حدث خطأ مؤقت. حاول مرة أخرى.',
+  plan: 'هذه الميزة متاحة في بريميوم وبرو.',
+  quota: 'انتهت حصتك اليومية.',
 };
 function send(res, code, obj) {
   if (res.headersSent) return;
@@ -257,6 +308,13 @@ async function handle(req, res) {
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
   if (!body || typeof body !== 'object') return fail(res, 400, 'bad');
 
+  const pinfo = verifyPlan(body.pt);
+  const plan = pinfo ? pinfo.p : 'free';
+  const cfg = PLAN_CFG[plan];
+  const tutor = body.tutor === true;
+  if (tutor && plan === 'free') return fail(res, 403, 'plan');
+  if (plan === 'free' && freeDaily(ip)) return fail(res, 429, 'quota');
+
   const valid = [];
   for (const m of Array.isArray(body.messages) ? body.messages : []) {
     if (!m || (m.role !== 'user' && m.role !== 'assistant')) continue;
@@ -264,7 +322,7 @@ async function handle(req, res) {
     const content = typeof m.content === 'string' ? m.content.slice(0, lim) : '';
     if (content) valid.push({ role: m.role, content });
   }
-  const recent = valid.slice(-MAX_HISTORY);
+  const recent = valid.slice(-(tutor ? 8 : MAX_HISTORY));
   while (recent.length && recent[0].role !== 'user') recent.shift();
   if (!recent.length) return fail(res, 400, 'bad');
 
@@ -279,17 +337,27 @@ async function handle(req, res) {
   const payload = {
     model, messages, stream,
     temperature: (typeof body.temperature === 'number' && Number.isFinite(body.temperature)) ? Math.min(1, Math.max(0, body.temperature)) : 0.5,
-    max_completion_tokens: num(body.max_tokens, DEFAULT_TOKENS, 1, MAX_TOKENS),
+    max_completion_tokens: Math.min(num(body.max_tokens, DEFAULT_TOKENS, 1, MAX_TOKENS), tutor ? cfg.tutorCap : cfg.cap),
   };
   const isOss = /^openai\/gpt-oss/.test(model);
   if (isOss) {
-    payload.reasoning_effort = ['low', 'medium', 'high'].includes(body.effort) ? body.effort : (process.env.GROQ_REASONING || 'low');
+    const base = tutor ? 'medium' : (plan === 'free' ? (process.env.GROQ_REASONING || cfg.eff) : cfg.eff);
+    const want = EFF.includes(body.effort) ? body.effort : base;
+    payload.reasoning_effort = EFF[Math.min(EFF.indexOf(want), cfg.maxEff)];
   }
   const wantSearch = body.search === true && isOss && process.env.GROQ_SEARCH !== '0';
   const full = wantSearch ? { ...payload, tools: [{ type: 'browser_search' }], tool_choice: 'auto' } : payload;
 
   const ac = new AbortController();
-  res.on('close', () => { if (!res.writableEnded) ac.abort(); });
+  const limit = Math.max(3, num(process.env.GROQ_CONCURRENCY, pool.length * 2, 1, 500));
+  let freed = false;
+  const free = () => { if (!freed) { freed = true; release(limit); } };
+  res.on('close', () => { if (!res.writableEnded) ac.abort(); free(); });
+
+  // انتظار الدور حسب الأولوية (برو > بريميوم > مجاني)
+  let slot = false;
+  try { slot = await acquire(cfg.pri, limit, ac.signal, 22000); } catch (e) { return; }
+  if (!slot) { freed = true; res.setHeader('Retry-After', '4'); return fail(res, 503, 'busy'); }
 
   let up = null;
   try {
@@ -311,7 +379,8 @@ async function handle(req, res) {
     return fail(res, 502, 'conn');
   }
 
-  if (!up) return fail(res, 503, 'busy'); // كل المفاتيح مستنزفة تمامًا
+  // كل المفاتيح مشغولة الآن: الواجهة لا تعرض خطأ، بل تنتظر بصمت وتعيد المحاولة تلقائيًا حتى يتحرر مفتاح
+  if (!up) { res.setHeader('Retry-After', '4'); return fail(res, 503, 'busy'); }
 
   const release = () => { if (up.key) { const h = H(up.key); if (h.inflight > 0) h.inflight--; } };
   try {
