@@ -259,6 +259,7 @@ async function callGroq(payload, pool, signal, opts = {}) {
       if (r.status >= 500 || r.status === 408 || r.status === 498) { onFault(key); drain(r); continue; }
       return { res: r, key: null }; // 4xx آخر: يعالجه المستدعي
     }
+    if (!opts.force && pool.every((k) => H(k).bad > Date.now())) return null; // كل المفاتيح مرفوضة: لا فائدة من الانتظار
     if (round >= retries) break;
     const wait = BACKOFF[Math.min(round, BACKOFF.length - 1)];
     if (opts.deadline && Date.now() + wait > opts.deadline) break; // لا نتجاوز ميزانية الوقت
@@ -293,6 +294,9 @@ async function handle(req, res) {
     res.setHeader('Access-Control-Max-Age', '86400');
   }
   if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
+  if (req.method === 'GET' && String(req.url || '').includes('diag')) {
+    return send(res, 200, { keys: discoverKeys().length, model: process.env.GROQ_MODEL || DEFAULT_MODEL, requireAuth: process.env.REQUIRE_AUTH !== '0', serviceAccount: saReady(), planSecret: !!(process.env.PLAN_SECRET || process.env.DEV_CODE_HASH) });
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, OPTIONS');
     return send(res, 405, { error: MSG.err, code: 'method' });
@@ -395,6 +399,8 @@ async function handle(req, res) {
     console.error('[moon] upstream failure:', e && e.message);
     return fail(res, 502, 'conn');
   }
+
+  if (!up && pool.every((k) => H(k).bad > Date.now())) { console.error('[moon] ALL keys rejected (401/403) — تحقق من GROQ_KEY_n في Vercel'); return fail(res, 503, 'conf'); }
 
   // كل المفاتيح مشغولة الآن: الواجهة لا تعرض خطأ، بل تنتظر بصمت وتعيد المحاولة تلقائيًا حتى يتحرر مفتاح
   if (!up) { res.setHeader('Retry-After', '4'); return fail(res, 503, 'busy'); }
