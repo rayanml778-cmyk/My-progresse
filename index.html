@@ -1152,7 +1152,7 @@ const K='lifeos_v1',$=s=>document.querySelector(s),esc=s=>'\u2060'+String(s).rep
 const dk=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),pd=k=>{const[a,b,c]=k.split('-');return new Date(+a,+b-1,+c)};
 const add=(k,n)=>{const d=pd(k);d.setDate(d.getDate()+n);return dk(d)},wk0=k=>add(k,-((pd(k).getDay()+1)%7)),week=k=>{const s=wk0(k);return[0,1,2,3,4,5,6].map(i=>add(s,i))},TODAY=()=>dk(new Date());
 const LOC={ar:'ar-EG-u-nu-latn',en:'en-US',fr:'fr-FR'},fmt=(k,o)=>pd(k).toLocaleDateString(LOC[LANG],o),mins=f=>{const u=LANG=='ar'?['س','د']:LANG=='en'?['h','m']:['h','min'];return f>=60?Math.floor(f/60)+' '+u[0]+' '+(f%60)+' '+u[1]:f+' '+u[1]};
-const def=()=>({v:0,name:'',theme:'blue-dark',tasks:{},habits:[],hlog:{},wo:[],moon:{cur:null,ss:[]},wmode:'def',cplan:{},cgoal:{},wlog:{},wsk:{},wcfg:{},fcfg:{f:25,b:5},focus:{},rev:{},arc:{},notes:[],sk:null,mt:0,lang:'ar',avatar:'',cal:{w:'',h:'',a:'',sx:'m',act:'1.375',g:'keep'},nset:{t:1,r:1}});
+const def=()=>({v:0,name:'',theme:'blue-dark',tasks:{},habits:[],hlog:{},wo:[],moon:{cur:null,ss:[]},wmode:'def',cplan:{},cgoal:{},cprof:{},wperf:[],wlog:{},wsk:{},wcfg:{},fcfg:{f:25,b:5},focus:{},rev:{},arc:{},notes:[],sk:null,mt:0,lang:'ar',avatar:'',cal:{w:'',h:'',a:'',sx:'m',act:'1.375',g:'keep'},nset:{t:1,r:1}});
 let S=def(),view='dash',sel=TODAY(),armed=0,M=null,FX='';
 const THK='mp_theme';function normTheme(v){v=String(v||'');if(/^(gold|blue|pink|red|cel|shd|aur|voi|roy|neo)-(dark|light)$/.test(v))return v;return({midnight:'blue-dark',dark:'blue-dark',emerald:'gold-dark',rose:'pink-light',lavender:'blue-light',light:'blue-light',pink:'pink-dark'})[v]||'blue-dark'}
 try{const r=JSON.parse(localStorage.getItem(K));if(r&&typeof r==='object')S=Object.assign(def(),r)}catch(e){}
@@ -1310,6 +1310,7 @@ const FEATURES=[
 {v:'2026.11.16-d',t:['الجناح الحيّ','The living wing','L’aile vivante'],d:['في المقدّمة صارت كل ريشة تتحرك بإيقاعها مع شظايا وشرارات أكثر.','In the intro every feather now moves on its own rhythm, with more shards and sparks.','Dans l’intro chaque plume bouge à son rythme, avec plus d’éclats et d’étincelles.']},
 {v:'2026.11.16-e',t:['مقارنة الباقات والأسعار','Plans and prices comparison','Comparatif des plans et prix'],d:['شاشة ترحيبية توضّح الفروق بين المجاني وبريميوم وبرو مع الأسعار الشهرية والأسبوعية، وجدول مقارنة تفصيلي.','A welcome screen explains the differences between Free, Premium and Pro with monthly and weekly prices, plus a detailed comparison table.','Un écran d’accueil explique les différences entre Gratuit, Premium et Pro avec les prix mensuels et hebdomadaires, et un tableau comparatif.'],moon:'The plans screen opens once at first start and any time from the PRO button at the top. It shows monthly and weekly prices and a comparison table of Free, Premium and Pro.'},
 {v:'2026.11.16-f',t:['العمل بدون إنترنت','Offline awareness','Mode hors ligne'],d:['إشعار أنيق عند انقطاع الاتصال، وتصفّح محادثات Moon المحفوظة كالمعتاد، ومنع الإرسال بدون إنترنت مع زر إعادة المحاولة. والرصيد صار نجمة متوهجة.','An elegant notice when offline, saved Moon chats stay readable, sending is paused without internet with a Retry button, and credits now show as a glowing sparkle.','Un bandeau élégant hors ligne, les chats Moon enregistrés restent lisibles, l’envoi est suspendu sans internet avec un bouton Réessayer, et les crédits s’affichent en étoile lumineuse.'],moon:'When offline the app shows a notice; you can still read saved Moon chats, but sending is blocked until the connection returns. If a request fails, tap Retry under the message.'},
+{v:'2026.11.17-a',t:['مدرب رياضي أذكى','Smarter sports coach','Coach sportif plus malin'],d:['يفهم Moon رسائلك الرياضية القصيرة ويعدّل جدولك دون إعادة بنائه: استبدال تمرين، تخفيف الحجم، نقل يوم، تغيير المعدات، إضافة مرونة. ويحلّل خطة تلصقها نصًا.','Moon understands short sports messages and edits your plan without rebuilding it: swap an exercise, lower volume, move a day, change equipment, add mobility. It also analyses a plan you paste as text.','Moon comprend tes messages sportifs courts et modifie ton plan sans le refaire : échange d’exercice, volume, déplacement d’un jour, matériel, mobilité. Il analyse aussi un plan collé en texte.'],moon:'Plan edits run through ops plan_swap, plan_volume, plan_move, plan_mobility, plan_equipment. Pasted text plans are analysed by the app. Pictures cannot be read.'},
 ];
 const featSys=()=>'\n\nAPP FEATURES AND UPDATES (registered automatically from the app update list)\n- The user may ask what is new, what a feature does, or how to use it. Answer from this list in their language, briefly and practically, and point them to where it is. If something is not on this list, say you are not sure instead of inventing it. You can only change things through the supported ops.\n'+FEATURES.map(f=>'- ['+f.v+'] '+f.t[1]+': '+f.d[1]+(f.moon?' HOW TO USE: '+f.moon:'')).join('\n');
 function whatsNew(){let pv=null;try{pv=localStorage.getItem('mp_ver');localStorage.setItem('mp_ver',APP_VER)}catch(e){return}if(pv===APP_VER||TOUR_NEW)return;
@@ -1450,6 +1451,7 @@ document.addEventListener('input',e=>{const t=e.target,f=t.dataset&&t.dataset.cf
 /* ================= Moon AI ================= */
 const MS={busy:0,ac:null,sc:0,edit:null,et:'',ef:0,dc:null};let MD='';
 const MDN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MX={paste:null};
 const moon=()=>S.moon=(S.moon&&Array.isArray(S.moon.ss))?S.moon:{cur:null,ss:[]};
 const mh=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const SYS=`You are Moon AI, a professional, smart and friendly personal assistant inside the user's "MY PROGRESS" app (tasks, habits, focus time, workouts, notes, body data, themes). Every message carries a fresh [APP CONTEXT] with their real data: read it instead of asking them to repeat things, and refer to real details from it (a streak, a finished task, a busy day) when it helps them plan.
@@ -1471,22 +1473,28 @@ MEMORY, PULSE AND ENERGY
 - When the user shares a lasting preference, routine or goal (for example "I train in the morning", "I prefer short tasks") or asks you to remember something, add ONE remember op with a short neutral sentence in their language. Do not store sensitive details (health conditions, money, religion, private data about other people) unless they explicitly ask you to remember them. When they ask to forget something, emit a forget op with a keyword of that memory.
 - The app already shows a daily greeting card and asks about energy by itself, so do not repeat a daily summary. When the user reports LOW energy, answer supportively and propose ONE light change in one sentence (for example move or shrink one or two tasks, shorten a workout); apply it with update_task or plan_update only after they agree, or at once if they ask for it. With medium or high energy, just encourage briefly.
 
-FITNESS COACH ENGINE (you are also the user's personal sports coach)
-- Disciplines you master: calisthenics, bodyweight training, muscle and strength (dumbbells, bands, machines), boxing and shadow-boxing conditioning, cardio and endurance (running, rope, intervals), athletic conditioning, flexibility and mobility, general fitness, and any other sport the user asks for (apply its core principles: specificity, progressive overload, recovery).
-- Personalize from age, experience, goal, available equipment, location (home, gym, outdoors), training days per week, minutes per session, injuries or limits, and recovery or energy. First use [APP CONTEXT] (workoutHistoryLast7Days, customWeeklyPlan, energy, bodyData, memory). If something essential is still unknown (goal, level, equipment, days, minutes), ask ONE short question; never fall back on a generic template. Do not store health conditions in memory unless asked.
-- A complete program has: a weekly schedule that fits their days; a goal per day; a warm-up (3 to 5 minutes, phase warmup) and a cool-down (phase cooldown) as exercises; main exercises with sets, reps (or seconds for holds), rest in seconds, level, a one-line note and an alt; recovery days (recovery true) between hard sessions of the same muscles; and progression advice in your reply (add reps, then sets, then a harder variation; a lighter week every 4 to 6 weeks).
-- Levels: beginner = full body 2 to 3 days, 2 to 3 sets, simple variations, 60 to 90 s rest. Intermediate = splits or push/pull/legs, 3 to 4 sets, tempo and harder variations. Advanced = skill progressions, 4 to 5 sets, periodization, shorter rest for conditioning. Under 18, over 50, or with limits: lower volume, no max-effort or risky moves, and a professional for pain or medical conditions.
-- Adapt: from feedback (too hard, too easy, pain, boredom) change difficulty by one step with plan_update, or swap with plan_remove plus plan_add. If equipment is missing, replace the move with a same-pattern bodyweight or home alternative. Change only what needs changing: never rebuild the whole program with replace true unless the user asks to regenerate it. Detect excess: if workoutHistoryLast7Days shows 6 or 7 training days, repeated hard work on the same muscles, or several low-energy days, advise a rest day or lower volume and apply it only after they agree.
-- Tracking: the app tracks sets for the plan exercises. When the user says they finished sets, use log_sets. Never claim a workout was logged or a plan changed without the matching op. History and statistics update from the plan and the logs automatically.
-- Safety: never promise results, never prescribe extreme diets, drug doses or medical treatment. For chest pain, dizziness, sharp pain or an injury, tell them to stop and see a professional.
-- Fitness coaching is NOT a heavy task: handle it fully, in the user's language.
+ELITE SPORTS COACH (you are the user's personal coach, sports encyclopedia and program designer)
+- Sports you master: gym and fitness, calisthenics and street workout, bodybuilding, powerlifting, strength training, cardio and endurance, running and athletics, football, basketball, swimming, boxing (fitness and safe solo technique only, never sparring plans), martial arts, cycling, yoga and mobility, functional training, flexibility. Discuss any sport the user raises, even outside this list.
+- Science: anatomy (which muscles an exercise trains), physiology, biomechanics, recovery, mobility, cardiovascular fitness, strength development, training principles (specificity, progressive overload, individual variation, recovery) and injury prevention. Separate what is well established (progressive overload, enough protein and sleep, recovery) from what varies by person or is debated (exact volume, best split, stretching timing) and say which is which. Never invent studies, numbers or citations. Give the reason behind each recommendation in one clause, label claims as well established, depends on the person, or your own judgment, offer a practical alternative when you restrict something, and explain technique in short steps (setup, movement, breathing, common mistake). When asked why these exercises were chosen, explain only through what the generator really uses (movement pattern, level, equipment, limits, rotating variations) and mention only exercises that are in customWeeklyPlan.
+- Nutrition, balanced only: what protein, carbs and fats do for performance, hydration, pre and post workout meals, sleep. No crash diets, no extreme deficits, no unnecessary supplements, no medical diets; for under 18 or medical conditions point to a doctor or dietitian.
+- Personalization: read coach.profile in [APP CONTEXT] before asking, and never ask what the profile or this chat already answered. If something essential is missing (goal, level, equipment, days, minutes, limits) ask ONE short question. When the user states such facts, save them with coach_profile. Under 18: moderate volume, technique first, no max-effort, no weight-cutting. Over 50 or with limits: low impact. coach.assumed lists profile fields the app filled with defaults, not facts the user told you: treat them as assumptions and never present them as known. coach.unknown lists what is still unknown: ask only when the request truly depends on it (one short question), otherwise go ahead and state the assumption in a few words. coach.recentChanges and coach.reported are the only real history of plan edits and reported results: never invent others.
+- Understanding: users write short, informal, misspelled or dialect messages (even Arabizi). Work out the real intent. Resolve words like it, this, that one, the same, another one, the second day against the last turns and customWeeklyPlan, and answer about THEIR plan, never with generic tips. If two readings are plausible choose the likelier and name it in a few words; ask one short question only when the readings lead to different plan changes. Several questions in one message get one compact answer covering all of them.
+- Building programs: for a full program call gen_program. The app has a real generator that picks exercises, sets, reps, rest, warm-up, cool-down, alternatives and recovery days from the user's inputs, so do NOT write a whole program as text and do NOT use create_program for it (create_program is only for a custom program the user dictates). After gen_program reply in at most 6 short lines: days, split, intensity, one progression tip, and tell them to open the weekly plan. To change an existing program use plan_update, plan_add, plan_remove or plan_goal; regenerate only when asked (a different variant number gives a different selection).
+- Editing a plan (keep everything else, never regenerate for these): replace or find another exercise for the same muscles, or the user cannot do an exercise → plan_swap (mode easier when it is too hard, pain when it hurts, harder to progress, same for variety). The app picks the new exercise from its own exercise base (same movement and muscles, fitting equipment, level and limits), so never name or invent the new exercise yourself; the confirmation shows it. Easier workout or less volume → plan_volume direction down (more → up). Cannot train today or missed a day → plan_move to a day with no exercises in customWeeklyPlan, only when recovery allows (never two hard sessions back to back on the same muscles); otherwise skip it, no double sessions; if no day is free ask which one. Gym to home or new equipment → plan_equipment (it adapts only the exercises that no longer fit). More mobility → plan_mobility. When the user dictates exact names or numbers use plan_update, plan_add or plan_remove. A note [app actions applied: plan_noalt] means no alternative was found: then suggest one in text and apply it with plan_update only if the user agrees. When the user states an injury or new equipment also save it with coach_profile.
+- Ops: gen_program {sport (string or array of up to 3), goal ("strength"|"hypertrophy"|"endurance"|"fatloss"|"general"|"skill"), level ("beginner"|"intermediate"|"advanced"), days (3 to 6), dayList? (weekday names), minutes (15 to 120), equipment? (array of: none, bar, dip_bars, dumbbells, barbell, bench, machines, bands, rope, pool, bike, ball, box, or gym for a full gym), age?, limits? (array of: knee, shoulder, back, wrist, elbow, ankle, neck, hip), focus? ("pullup"|"upper"|"lower"), max? (current best clean pull-ups), variant? (number)} PRO ONLY | coach_profile {age?, level?, goal?, sports?, equipment?, days?, minutes?, limits?} | log_perf {name|id, reps?, weight? (kg), secs?, target_reps?, date?}. Sport words for gen_program: gym, calisthenics, bodybuilding, powerlifting, strength, cardio, running, football, basketball, swimming, boxing, martial_arts, cycling, yoga, functional, flexibility.
+- Analysis: when [APP CONTEXT] has coach.audit, base your review of the user's plan on it (training and rest days, push/pull balance, legs, core, volume, flags, score), and say so plainly if a flag says low_confidence. For a program pasted as text, analyse it yourself: day distribution, balance, repetition, under or over training, rest intervals; then give practical fixes and a compact improved version, and apply it (gen_program or plan ops) only if the user agrees. When [APP CONTEXT] has pastedPlan it is the app's own parse of the text the user just pasted: treat findings as computed facts only when confidence is high, otherwise call them approximate; items in notListed were simply not mentioned in the text, so say not listed instead of missing; unrecognized names were not classified. Cover balance, recovery, exercise selection, volume, muscle distribution, redundancy and missing parts, then give practical fixes. You cannot read pictures or files: if the user says they attached a photo or table image, ask them to paste it as text.
+- Performance: when the user reports a result (reps, weight, seconds) call log_perf. Base progress advice only on coach.insights and logged data. With no data say so and ask for numbers. Never claim to track or see anything the app does not store. Progression: add reps inside the range first, then the smallest load step, then a harder variation; deload about 10% after 3 stalled sessions or 4 to 6 hard weeks; change one thing at a time. Reduce volume when workoutHistoryLast7Days shows 6 or 7 training days, repeated hard work on the same muscles, or several low-energy days, and apply it only after the user agrees. When the user reports an improvement (for example more pull-ups) call log_perf, then change only what that progress justifies: plan_update for that exercise's reps or sets, or plan_swap with mode harder; keep the rest of the plan.
+- Calisthenics: know push-ups, pull-ups, dips, squats, planks, core work, static holds, muscle-up and handstand progressions. For pull-up goals use gen_program with focus pullup and max; the ladder is scapular pulls, negatives, band-assisted, full pull-ups, chin-ups, wide, archer, high pull-ups. Always give the easier and the harder version of a move.
+- Exercise questions (what does it train, how do I do it, common mistakes): answer in short lines: target muscles, 2 or 3 form cues, the most common mistake, an easier and a harder version. Sports knowledge questions may use up to 12 short lines.
+- Tracking: the app tracks sets for the plan exercises; when the user says they finished sets use log_sets. Never claim a workout was logged or a plan changed without the matching op.
+- Safety: for chest pain, dizziness, sharp or lasting pain or an injury, tell them to stop and see a professional. No diagnosis, no drug or dose advice, no promised results. Also send them to a doctor or physiotherapist for pain with numbness or that lasts, a recent injury or surgery, pregnancy or postpartum, heart or blood-pressure conditions, diabetes, medication questions, or signs of an eating disorder. Fitness coaching is NOT a heavy task: handle it fully in the user's language.
 
 HEAVY TASKS (do not do them)
 - Do NOT teach complex lessons, solve long problems, do academic or deep research, write or debug long code, translate long texts, or run web searches. Your job is personal organization, motivation and app control only.
 - Decline these politely and briefly (one or two sentences) and steer back to what you can do, for example: "هذا يحتاج مساحة أكبر من دوري هنا، الأفضل أن تسأل عنه مساعدًا مخصصًا، وأنا هنا لتنظيم يومك ومهامك." A very short everyday answer (one or two lines) is fine.
 
 BREVITY (hard rule: saves tokens and time)
-- Exception: when you create or change a training program, reply in at most 6 short lines (days, goal, progression tip); the exercise details live in the action block.
+- Exception: when you create or change a training program, reply in at most 6 short lines (days, goal, progression tip); the exercise details live in the action block. Plan analysis, sport or method comparisons and explanations of why exercises were chosen may use up to 12 short lines (a compact list is fine).
 - Default reply: 1 to 3 short sentences. Never more than about 60 words unless the user explicitly asks for more. No lists, no headers, no summaries, no repeated offers. Clarity and usefulness come from word choice, not length. A simple hello gets one short friendly line.
 - Use emoji sparingly: at most one per reply, and none is fine.
 
@@ -1516,9 +1524,9 @@ KEEPING THE APP IN SYNC (very important)
 - Supported ops:
   add_task {date?, text} | complete_task {id|text, date?, done? (default true)} | remove_task {id|text, date?}
   add_habit {text} | log_habit {id|text, date?, done? (default true), value? (counter habits)}
-  plan_add {day, name, sets, reps, rest?, note?, alt?, level?, phase?} | plan_update {id|name, day?, new_name?, sets?, reps?, rest?, note?, alt?, level?} | plan_remove {id|name, day?} | plan_goal {day, goal} (sets or clears a day's objective)
+  plan_add {day, name, sets, reps, rest?, note?, alt?, level?, phase?} | plan_update {id|name, day?, new_name?, sets?, reps?, rest?, note?, alt?, level?} | plan_remove {id|name, day?} | plan_goal {day, goal} (sets or clears a day's objective) | plan_swap {id|name, day?, mode? (same|easier|harder|pain)} | plan_volume {direction (down|up), day? (weekday or all)} | plan_move {from, to} | plan_mobility {day? (weekday or all), count? (1 to 3)} | plan_equipment {equipment (array)}
   set_program {mode: "custom" | "default"} | log_sets {exercise (id|name), sets, date?} | add_note {title?, text}
-  update_task {id|text, date?, new_text?, new_date?} | update_habit {id|text, new_name?, goal? (minutes for time habits, number for counters), kind? ("time" | "counter" | "check") to change the habit type, e.g. give a plain check habit a daily timer: {op:"update_habit", id, kind:"time", goal:30}} | remove_habit {id|text}\n  add_habit also accepts: kind (check, time or counter), goal (minutes for time habits), time (HH:MM 24h reminder), link_timer (time habits link to the focus timer by default)\n  set_reminder {target: task or habit, id|text, date?, time: HH:MM 24h} | clear_reminder {target, id|text}. Reminders repeat daily for habits; tasks remind on their own date.\n  create_program {name?, replace? (true replaces those days, default adds), days:[{day, goal? (that day's objective, max 12 words), recovery? (true for a rest or active-recovery day), exercises:[{name, sets, reps, rest (seconds), phase? ("warmup"|"main"|"cooldown"), level? ("beginner"|"intermediate"|"advanced"), note? (one-line how-to or cue, max 20 words), alt? (alternative if equipment or ability is missing)}]}]} PRO ONLY: a personalized weekly training program written into the app plan. Follow the FITNESS COACH ENGINE section. Max 7 days and 20 exercises per day; keep notes short so the block is never cut off.\n  update_note {id|title, new_title?, new_text? (replaces the body), append? (adds to the end)} | remove_note {id|title}
+  update_task {id|text, date?, new_text?, new_date?} | update_habit {id|text, new_name?, goal? (minutes for time habits, number for counters), kind? ("time" | "counter" | "check") to change the habit type, e.g. give a plain check habit a daily timer: {op:"update_habit", id, kind:"time", goal:30}} | remove_habit {id|text}\n  add_habit also accepts: kind (check, time or counter), goal (minutes for time habits), time (HH:MM 24h reminder), link_timer (time habits link to the focus timer by default)\n  set_reminder {target: task or habit, id|text, date?, time: HH:MM 24h} | clear_reminder {target, id|text}. Reminders repeat daily for habits; tasks remind on their own date.\n  create_program {name?, replace? (true replaces those days, default adds), days:[{day, goal? (that day's objective, max 12 words), recovery? (true for a rest or active-recovery day), exercises:[{name, sets, reps, rest (seconds), phase? ("warmup"|"main"|"cooldown"), level? ("beginner"|"intermediate"|"advanced"), note? (one-line how-to or cue, max 20 words), alt? (alternative if equipment or ability is missing)}]}]} PRO ONLY: a personalized weekly training program written into the app plan. Prefer gen_program (see ELITE SPORTS COACH). Max 7 days and 20 exercises per day; keep notes short so the block is never cut off.\n  update_note {id|title, new_title?, new_text? (replaces the body), append? (adds to the end)} | remove_note {id|title}
   remember {text} | forget {text}
   set_theme {family?: "gold" | "blue" | "pink" | "red" | "cel" (Celestial Dream) | "shd" (Shadow Monarch) | "aur" (Ethereal Aurora) | "voi" (Void Legion) | "roy" (Royal Zenith) | "neo" (Neon Eclipse), mode?: "dark" | "light"}
   where day is an English lowercase weekday: sunday, monday, tuesday, wednesday, thursday, friday, saturday.
@@ -1545,7 +1553,11 @@ const wl=[];for(let i=6;i>=0;i--){const k=add(t,-i),w=wst(k);if(w.wt&&(S.wlog[k]
 try{const n=(S.notes||[]).slice().sort((a,b)=>b.u-a.u).slice(0,8);if(n.length)o.recentNotes=n.map(x=>({id:x.id,title:x.t,preview:String(x.c||'').replace(/\s+/g,' ').slice(0,100)}))}catch(e){}
 try{if(S.cal&&(S.cal.w||S.cal.h))o.bodyData=S.cal}catch(e){}
 try{const hd=[];for(let i=1;i<=14;i++){const k=add(t,-i),q=ds(k);if(q.tt||q.ht||q.wt||S.focus[k])hd.push(k+' score'+q.sc+'% tasks'+q.td+'/'+q.tt+' habits'+q.hd+'/'+q.ht+' focus'+(S.focus[k]||0)+'m sets'+q.wd+'/'+q.wt)}if(hd.length)o.pastDays=hd}catch(e){}
-let j=JSON.stringify(o);if(j.length>14000)j=j.slice(0,14000)+'...(truncated)';return j}
+try{const cx={},P0=S.cprof||{};if(Object.keys(P0).length||cpAll().some(w=>String(w.n||'').trim())){const{log,prog,assumed,...pr}=P0,asm=Array.isArray(assumed)?assumed:[];if(Object.keys(pr).length)cx.profile=pr;if(asm.length)cx.assumed=asm;if(prog)cx.program=prog;if(Array.isArray(log)&&log.length)cx.recentChanges=log;const un=['goal','level','equipment','days','minutes'].filter(k=>pr[k]==null||(Array.isArray(pr[k])&&!pr[k].length)||asm.includes(k));if(un.length)cx.unknown=un}const pa=cpAll().some(w=>String(w.n||'').trim())?CX.audit(S.cplan||{},S.cgoal):null;if(pa&&pa.trainingDays)cx.audit={trainingDays:pa.trainingDays,restDays:pa.restDays,weeklySets:{push:pa.push,pull:pa.pull,legs:pa.legs,core:pa.core},byMuscle:pa.setsByMuscle,flags:pa.flags.slice(0,7),score:pa.score};const ins=CX.insights(S.wperf,t);if(ins.length)cx.insights=ins.slice(0,5);const rp=(Array.isArray(S.wperf)?S.wperf:[]).slice(-4).map(x=>String(x.d||'').slice(5)+' '+(x.n||'?')+(x.r?' '+x.r+'reps':'')+(x.w?' '+x.w+'kg':'')+(x.t?' '+x.t+'s':''));if(rp.length)cx.reported=rp;if(Object.keys(cx).length)o.coach=cx}catch(e){}
+if(MX.paste)o.pastedPlan=MX.paste;
+let j=JSON.stringify(o);const LM=14000;if(j.length>LM){for(const k of['recentNotes','bodyData','pastDays','defaultWeeklyPlan','extraExercises','energyEarlier','focusLast7Days']){if(j.length<=LM)break;delete o[k];j=JSON.stringify(o)}}
+if(j.length>LM&&Array.isArray(o.customWeeklyPlan)){o.customWeeklyPlan=o.customWeeklyPlan.map(d=>({day:d.day,goal:d.goal,exercises:d.exercises.map(e=>e.id+'|'+e.exercise+'|'+e.sets+'x'+e.reps+(e.phase?'|'+e.phase:''))}));j=JSON.stringify(o)}
+if(j.length>LM){const pri={};['today','weekday','uiLanguage','name','coach','pastedPlan'].forEach(k=>{if(o[k]!==undefined)pri[k]=o[k]});j=JSON.stringify(Object.assign(pri,o)).slice(0,LM)+'...(truncated)'}return j}
 const msys=ss=>{const tm=mtm(ss);if(tm)return tutorSys(tm,ss);const d=ss?mdig(ss):'';return SYS+featSys()+'\n\n[APP CONTEXT]\n'+mctx()+(ss&&ss.sum?'\n\n[MEMORY SUMMARY OF EARLIER TURNS IN THIS CHAT]\n'+ss.sum:'')+(d?'\n\n[CONDENSED RECENT TURNS BEFORE THE MESSAGES BELOW]\n'+d:'')};
 const MOON_API='/api/chat';try{localStorage.removeItem('mp_moon')}catch(e){}
 const MFE=c=>Object.assign(new Error(c=='busy'?X('الخدمة مشغولة حاليًا. حاول مرة أخرى بعد لحظات.'):X('حدث خطأ مؤقت. حاول مرة أخرى.')),{friendly:1,busy:c=='busy'});
@@ -1579,11 +1591,406 @@ cl();if(!z)return;if(m=/^#{1,4}\s+(.*)/.exec(z)){o+='<h4>'+inl(m[1])+'</h4>';ret
 cl();ft();return o}
 const MQ=['نظّم لي يومي حسب أولوياتي','أضف مهمة جديدة لليوم','ما أولوياتي اليوم بحسب مهامي وعاداتي؟'];
 /* ---- Two-way sync: actions Moon AI can apply to the app state ---- */
-const MAL={add_task:'أُضيفت مهمة',done_task:'أُنجزت المهمة',undone_task:'أُعيد فتح المهمة',del_task:'حُذفت المهمة',add_habit:'أُضيفت عادة',log_habit:'سُجّلت العادة',plan_add:'أُضيف تمرين للجدول',plan_upd:'عُدّل تمرين في الجدول',plan_del:'حُذف تمرين من الجدول',prog_cus:'تفعيل برنامجك الخاص',prog_def:'العودة للبرنامج الافتراضي',log_sets:'سُجّلت مجموعات',add_note:'أُضيفت ملاحظة',set_theme:'تم تغيير الثيم',upd_task:'عُدّلت المهمة',upd_habit:'عُدّلت العادة',del_habit:'حُذفت العادة',upd_note:'عُدّلت الملاحظة',del_note:'حُذفت الملاحظة',remember:'حُفظ في الذاكرة',forget:'حُذف من الذاكرة',set_rem:'ضُبط التذكير',clear_rem:'أُزيل التذكير',prog_new:'أُضيف برنامج التمرين للجدول'};
+const MAL={add_task:'أُضيفت مهمة',done_task:'أُنجزت المهمة',undone_task:'أُعيد فتح المهمة',del_task:'حُذفت المهمة',add_habit:'أُضيفت عادة',log_habit:'سُجّلت العادة',plan_add:'أُضيف تمرين للجدول',plan_upd:'عُدّل تمرين في الجدول',plan_del:'حُذف تمرين من الجدول',prog_cus:'تفعيل برنامجك الخاص',prog_def:'العودة للبرنامج الافتراضي',log_sets:'سُجّلت مجموعات',add_note:'أُضيفت ملاحظة',set_theme:'تم تغيير الثيم',upd_task:'عُدّلت المهمة',upd_habit:'عُدّلت العادة',del_habit:'حُذفت العادة',upd_note:'عُدّلت الملاحظة',del_note:'حُذفت الملاحظة',remember:'حُفظ في الذاكرة',forget:'حُذف من الذاكرة',set_rem:'ضُبط التذكير',clear_rem:'أُزيل التذكير',prog_new:'أُضيف برنامج التمرين للجدول',plan_swap:'استُبدل تمرين',plan_vol:'عُدّل حجم التمرين',plan_move:'نُقلت جلسة',plan_mob:'أُضيفت تمارين مرونة',plan_equip:'تكيّف الجدول مع المعدات',plan_noalt:'لا يوجد بديل مناسب',plan_blocked:'تعذّر النقل: اليوم مشغول'};
+/* ===COACH-ENGINE=== محرك المدرب الرياضي: قاعدة تمارين + مولّد برامج + محلل برامج + تتبع أداء (دوال نقية بلا اعتماد على الواجهة) */
+const CX=(()=>{
+const D={},rows=[];
+// [مفتاح, عربي, English, نمط, عضلات, معدات(حروف), مستوى 1-3, نوع(rep|hold|time|rnd), ضغط(مفاصل), تلميح عربي, cue EN]
+// معدات: n بلا · b عقلة · d متوازي · w دمبل · x بار · e بنش · m جهاز/كابل · r مطاط · j حبل · p مسبح · c دراجة · o كرة · k صندوق
+const R=(...a)=>rows.push(a);
+// دفع أفقي
+R('pushup','ضغط (Push-up)','Push-up','ph','chest,triceps,shoulders','n',1,'rep','wrist','جسم مستقيم كاللوح والمرفقان 45° عن الجسم؛ انزل حتى يقترب صدرك من الأرض. الخطأ الشائع: هبوط الحوض.','Straight plank line, elbows 45°, chest near floor. Common error: sagging hips.');
+R('knee_pushup','ضغط على الركبتين','Knee push-up','ph','chest,triceps','n',1,'rep','','نفس تقنية الضغط لكن من الركبتين؛ ابقَ بخط مستقيم من الركبة للرأس.','Same form as a push-up from the knees; keep a straight knee-to-head line.');
+R('incline_pushup','ضغط مائل (يدان على كرسي)','Incline push-up','ph','chest,triceps','n',1,'rep','','كلما ارتفعت اليدان سهل التمرين؛ أنزِل الارتفاع تدريجيًا مع التقدم.','Higher hands = easier; lower the height as you progress.');
+R('decline_pushup','ضغط بقدمين مرفوعتين','Decline push-up','ph','chest,shoulders,triceps','n',2,'rep','shoulder','القدمان على كرسي؛ يزيد الحمل على الكتف والصدر العلوي. لا ترفع الكتفين نحو الأذنين.','Feet elevated; loads upper chest and shoulders. Do not shrug.');
+R('diamond_pushup','ضغط الماس','Diamond push-up','ph','triceps,chest','n',2,'rep','wrist,elbow','اليدان تحت الصدر؛ المرفقان قريبان من الجسم. أوقف التمرين عند ألم المرفق.','Hands under chest, elbows close. Stop if elbows hurt.');
+R('archer_pushup','ضغط القوس','Archer push-up','ph','chest,triceps,shoulders','n',3,'rep','wrist,shoulder','مرحلة تمهيد لضغط اليد الواحدة: ادفع بجهة وأبقِ الأخرى ممدودة.','Single-arm push-up lead-in: push with one arm, other arm stays straight.');
+R('pseudo_planche','ضغط شبه بلانش','Pseudo planche push-up','ph','shoulders,chest,core','n',3,'rep','wrist,shoulder','اليدان عند الخصر وميلان الجسم للأمام؛ يبني قوة مهارة البلانش.','Hands by the hips, lean forward; builds planche strength.');
+R('dips','متوازي (Dips)','Parallel-bar dips','ph','chest,triceps,shoulders','d',2,'rep','shoulder,elbow','انزل حتى زاوية 90° للمرفق ولا أكثر؛ الكتفان بعيدان عن الأذنين.','Lower to about 90° at the elbow, no deeper; keep shoulders down.');
+R('bench_dip','غطس على كرسي','Bench dip','ph','triceps','n',1,'rep','shoulder,wrist','الظهر قريب من الكرسي والنزول قصير؛ تجنّبه عند ألم الكتف.','Stay close to the bench, short range; skip with shoulder pain.');
+R('bench_press','ضغط بار على البنش','Barbell bench press','ph','chest,triceps,shoulders','xe',2,'rep','shoulder','لوحا الكتف مثبتان للخلف والبار ينزل لأسفل الصدر؛ استعمل مساعدًا للأوزان الثقيلة.','Shoulder blades pinned back, bar to lower chest; use a spotter when heavy.');
+R('db_bench','ضغط دمبل على البنش','Dumbbell bench press','ph','chest,triceps,shoulders','we',1,'rep','','نزول بطيء 2-3 ثوانٍ ودفع قوي دون قفل المرفقين تمامًا.','Lower in 2-3 s, press firmly without hard-locking elbows.');
+R('incline_db','ضغط دمبل مائل','Incline dumbbell press','ph','chest,shoulders,triceps','we',2,'rep','shoulder','ميل البنش 30° لاستهداف الصدر العلوي.','Bench at about 30° to target the upper chest.');
+R('db_floor_press','ضغط دمبل من الأرض','Dumbbell floor press','ph','chest,triceps','w',1,'rep','','بدون بنش: يحمي الكتف لأن المرفق يتوقف على الأرض.','No bench needed; the floor stops the elbow, which spares the shoulder.');
+R('band_press','ضغط بالمطاط','Band chest press','ph','chest,triceps','r',1,'rep','','ثبّت المطاط خلف ظهرك وادفع للأمام بتحكم.','Anchor the band behind you and press forward under control.');
+R('cable_fly','تجميع كابل للصدر','Cable fly','ph','chest','m',1,'rep','shoulder','مرفقان مثنيان قليلًا؛ اعصر الصدر في النهاية.','Slight elbow bend; squeeze the chest at the end.');
+// دفع عمودي
+R('pike_pushup','ضغط بايك','Pike push-up','pv','shoulders,triceps','n',2,'rep','shoulder,wrist','الوركان للأعلى والرأس بين الذراعين؛ تمهيد للوقوف على اليدين.','Hips high, head between arms; lead-in to handstand push-ups.');
+R('wall_hspu','ضغط وقوف على اليدين على الحائط','Wall handstand push-up','pv','shoulders,triceps','n',3,'rep','shoulder,wrist,neck','مهارة متقدمة: استخدم نطاق حركة جزئي أولًا وبسطح لين تحت الرأس.','Advanced: start with partial range and a soft surface under the head.');
+R('ohp','ضغط كتف بالبار','Barbell overhead press','pv','shoulders,triceps','x',2,'rep','shoulder,back','شدّ البطن والأرداف؛ لا تقوّس أسفل الظهر وادفع البار فوق الرأس.','Brace abs and glutes; do not arch the lower back.');
+R('db_press','ضغط كتف دمبل','Dumbbell shoulder press','pv','shoulders,triceps','w',1,'rep','shoulder','مرفقان أمام الجسم قليلًا؛ ادفع دون ارتفاع الكتفين.','Elbows slightly forward; press without shrugging.');
+R('band_ohp','ضغط كتف بالمطاط','Band overhead press','pv','shoulders','r',1,'rep','shoulder','ابدأ بمقاومة خفيفة وتحكّم في النزول.','Start light and control the lowering phase.');
+// سحب أفقي
+R('table_row','سحب أسترالي تحت طاولة ثابتة','Table inverted row','rh','back,biceps','n',1,'rep','','طاولة ثقيلة وثابتة فقط؛ الجسم مستقيم واسحب الصدر نحو الحافة.','Use a heavy, stable table only; body straight, pull chest to the edge.');
+R('aus_row','سحب أسترالي على البار','Inverted row on bar','rh','back,biceps','b',1,'rep','','كلما انخفض البار صعب التمرين؛ اضغط لوحي الكتف معًا في النهاية.','Lower bar = harder; squeeze shoulder blades at the top.');
+R('db_row','تجديف دمبل بيد واحدة','One-arm dumbbell row','rh','back,biceps','w',1,'rep','back','ظهر مستقيم والمرفق قريب من الجسم؛ اسحب نحو الورك لا الكتف.','Flat back, elbow close; pull toward the hip, not the shoulder.');
+R('barbell_row','تجديف بالبار','Barbell row','rh','back,biceps','x',2,'rep','back','ميل الجذع نحو 45° وظهر محايد؛ لا تستعمل زخم الجسم.','Torso about 45°, neutral spine; no body swing.');
+R('seated_row','تجديف كابل جالس','Seated cable row','rh','back,biceps','m',1,'rep','','صدر مرفوع وسحب للبطن؛ لا تتمايل بالجذع.','Chest up, pull to the abdomen; no torso swing.');
+R('band_row','تجديف بالمطاط','Band row','rh','back,biceps','r',1,'rep','','ثبّت المطاط أمامك واسحب المرفقين للخلف مع ضم لوحي الكتف.','Anchor ahead, pull elbows back and squeeze the shoulder blades.');
+R('band_pull_apart','فتح المطاط (كتف خلفي)','Band pull-apart','rh','shoulders,back','r',1,'rep','','ذراعان ممدودتان وافتح المطاط حتى الصدر؛ يحمي الكتف.','Arms straight, pull the band to the chest; protects the shoulder.');
+R('superman','سوبرمان (أسفل الظهر)','Superman','rh','back,glutes','n',1,'hold','back','ارفع الذراعين والرجلين ببطء وثبّت؛ لا ترفع الرقبة.','Lift arms and legs slowly and hold; do not crane the neck.');
+// سحب عمودي
+R('scap_pull','سحب لوحي الكتف (تعلق)','Scapular pull-up','rv','back,lats','b',1,'rep','','معلّق بذراعين ممدودتين، اسحب الكتفين للأسفل فقط؛ أساس العقلة.','Hang with straight arms, pull shoulders down only; foundation of the pull-up.');
+R('neg_pullup','عقلة بالنزول البطيء','Negative pull-up','rv','lats,biceps,back','b',1,'rep','','اصعد بقفزة ثم انزل في 4-5 ثوانٍ؛ أفضل بداية لأول عقلة.','Jump up, lower in 4-5 s; best way to earn the first pull-up.');
+R('band_pullup','عقلة بمساعدة المطاط','Band-assisted pull-up','rv','lats,biceps,back','br',1,'rep','','قلّل قوة المطاط تدريجيًا كل بضعة أسابيع.','Reduce band strength every few weeks.');
+R('pullup','عقلة (Pull-up)','Pull-up','rv','lats,biceps,back','b',2,'rep','elbow','ابدأ من تعلق كامل وارفع الذقن فوق البار بلا تأرجح.','Start from a dead hang, chin over the bar, no kipping.');
+R('chinup','عقلة بقبضة عكسية','Chin-up','rv','biceps,lats','b',2,'rep','elbow','أسهل قليلًا من العقلة وأقوى على البايسبس.','Slightly easier than a pull-up; stronger biceps load.');
+R('wide_pullup','عقلة بقبضة واسعة','Wide-grip pull-up','rv','lats,back','b',3,'rep','shoulder','قبضة أوسع قليلًا من الكتفين فقط؛ التوسيع الزائد يرهق الكتف.','Only slightly wider than the shoulders; too wide stresses the shoulder.');
+R('archer_pullup','عقلة القوس','Archer pull-up','rv','lats,biceps','b',3,'rep','shoulder,elbow','تمهيد للعقلة بيد واحدة: اسحب لجهة وامدد الذراع الأخرى.','One-arm pull-up lead-in: pull to one side, other arm straight.');
+R('high_pullup','عقلة عالية (تمهيد Muscle-up)','High pull-up','rv','lats,back,biceps','b',3,'rep','shoulder,elbow','اسحب حتى مستوى الصدر أو السرة مع ميلان للخلف؛ مرحلة قبل الانتقال فوق البار.','Pull to chest or navel level leaning back; the step before the transition over the bar.');
+R('lat_pulldown','سحب علوي (Lat pulldown)','Lat pulldown','rv','lats,biceps','m',1,'rep','','اسحب البار لأعلى الصدر مع إبقاء الصدر مرفوعًا.','Pull the bar to the upper chest, chest up.');
+// سكوات
+R('bw_squat','سكوات بوزن الجسم','Bodyweight squat','sq','quads,glutes','n',1,'rep','','القدمان بعرض الكتفين والركبتان باتجاه الأصابع؛ انزل بتحكم وظهر محايد.','Feet shoulder-width, knees over toes, controlled descent, neutral back.');
+R('box_squat','سكوات على كرسي','Box squat','sq','quads,glutes','n',1,'rep','','اجلس للمس الكرسي ثم قم؛ يعلّم العمق الآمن.','Tap the chair then stand; teaches safe depth.');
+R('goblet','سكوات جوبلت بدمبل','Goblet squat','sq','quads,glutes','w',1,'rep','','الدمبل عند الصدر يساعد على بقاء الجذع منتصبًا.','Dumbbell at the chest keeps the torso upright.');
+R('leg_press','ضغط الأرجل (جهاز)','Leg press','sq','quads,glutes','m',1,'rep','','لا تقفل الركبتين في الأعلى ولا ترفع الأرداف عن المقعد.','Do not lock the knees; keep the hips on the seat.');
+R('back_squat','سكوات بالبار','Barbell back squat','sq','quads,glutes,hams','x',2,'rep','back,knee','شدّ البطن، الركبتان للخارج، عمق مريح بظهر محايد؛ مساعد أو حامل أمان.','Brace the core, knees out, comfortable depth with neutral spine; use safety bars or a spotter.');
+R('pistol_box','بيستول على كرسي','Box pistol squat','sq','quads,glutes','n',3,'rep','knee','نزول بقدم واحدة نحو الكرسي بتحكم؛ مهارة تحتاج توازنًا ومرونة.','Single-leg descent to a chair; needs balance and mobility.');
+R('wall_sit','جلوس على الحائط','Wall sit','sq','quads','n',1,'hold','knee','ظهر ملاصق للحائط وركبتان 90°؛ ثبّت المدة المحددة.','Back on the wall, knees at 90°; hold the set time.');
+R('band_squat','سكوات بالمطاط','Banded squat','sq','quads,glutes','r',1,'rep','','قف على المطاط وأمسكه عند الكتفين؛ مقاومة تزيد في الصعود.','Stand on the band and hold at the shoulders; resistance rises on the way up.');
+// مفصلة الورك
+R('glute_bridge','جسر الأرداف','Glute bridge','hg','glutes,hams','n',1,'rep','','ادفع بالكعبين واعصر الأرداف في الأعلى دون تقويس الظهر.','Drive through heels and squeeze glutes without arching the back.');
+R('sl_bridge','جسر بساق واحدة','Single-leg glute bridge','hg','glutes,hams','n',2,'rep','','حوض مستوٍ ولا يدور؛ ادفع بالكعب.','Level hips, no rotation; drive through the heel.');
+R('db_rdl','رفعة رومانية بدمبل','Dumbbell Romanian deadlift','hg','hams,glutes,back','w',1,'rep','back','ظهر محايد والدمبل قريب من الساقين؛ ثنيّة الورك لا الظهر.','Neutral spine, weights close to legs; hinge at the hips, not the back.');
+R('rdl','رفعة رومانية بالبار','Barbell Romanian deadlift','hg','hams,glutes,back','x',2,'rep','back','انزل حتى شدّ الفخذ الخلفي دون تقويس الظهر.','Lower until the hamstrings stretch without rounding the back.');
+R('deadlift','ديدلفت بالبار','Barbell deadlift','hg','glutes,hams,back','x',3,'rep','back','البار ملاصق للساقين وظهر محايد؛ تعلّم التقنية بوزن خفيف قبل الزيادة.','Bar close to the legs, neutral spine; learn the pattern light before adding load.');
+R('hip_thrust','هيب ثراست بالبار','Barbell hip thrust','hg','glutes','xe',2,'rep','','ذقن للصدر وتوقف لحظة في الأعلى؛ لا تبالغ في تقويس الظهر.','Chin tucked, pause at the top; avoid over-arching.');
+R('nordic','نوردك كيرل (تمهيد)','Nordic hamstring curl','hg','hams','n',3,'rep','knee','نزول بطيء جدًا مع مساعدة اليدين؛ تمرين قوي للوقاية من إصابات الخلفية.','Very slow lowering with hand assist; strong hamstring-injury prevention.');
+R('leg_curl','لف الأرجل (جهاز)','Leg curl','hg','hams','m',1,'rep','','حركة بطيئة بلا رفع الأرداف.','Slow reps without lifting the hips.');
+// اندفاع
+R('reverse_lunge','اندفاع للخلف','Reverse lunge','lg','quads,glutes','n',1,'rep','knee','أخف على الركبة من الأمامي؛ خطوة طويلة والجذع منتصب.','Gentler on the knee than forward lunges; long step, upright torso.');
+R('lunge','اندفاع للأمام','Forward lunge','lg','quads,glutes','n',1,'rep','knee','الركبة الأمامية فوق القدم لا أمامها كثيرًا.','Front knee stays over the foot.');
+R('step_up','صعود على كرسي','Step-up','lg','quads,glutes','n',1,'rep','knee','ادفع بالرجل العلوية ولا تقفز بالسفلية.','Drive with the top leg; do not push off the bottom leg.');
+R('bulgarian','سكوات بلغاري','Bulgarian split squat','lg','quads,glutes','n',2,'rep','knee','القدم الخلفية على كرسي؛ انزل عموديًا بتحكم.','Rear foot on a chair; descend straight down under control.');
+R('db_lunge','اندفاع بدمبل','Dumbbell lunge','lg','quads,glutes','w',2,'rep','knee','نفس التقنية مع أوزان في اليدين.','Same technique with weights in hand.');
+R('calf_raise','رفع السمانة','Calf raise','cv','calves','n',1,'rep','ankle','حركة كاملة: أعلى نقطة ثم نزول بطيء تحت مستوى الحافة.','Full range: top pause, slow lowering below the edge.');
+R('sl_calf','رفع سمانة بقدم واحدة','Single-leg calf raise','cv','calves','n',2,'rep','ankle','تمسّك بحائط للتوازن فقط.','Touch a wall for balance only.');
+// ذراعان وكتف
+R('curl','بايسبس بدمبل','Dumbbell biceps curl','ar','biceps','w',1,'rep','','المرفقان ثابتان بجانب الجسم؛ بلا تأرجح.','Elbows fixed at the sides; no swinging.');
+R('hammer','مطرقة دمبل','Hammer curl','ar','biceps,forearms','w',1,'rep','','قبضة محايدة؛ تقوّي العضد والساعد.','Neutral grip; builds brachialis and forearms.');
+R('band_curl','بايسبس بالمطاط','Band biceps curl','ar','biceps','r',1,'rep','','قف على المطاط وارفع بتحكم.','Stand on the band and curl under control.');
+R('tri_ext','تراي فوق الرأس بدمبل','Overhead triceps extension','ar','triceps','w',1,'rep','elbow','المرفقان قريبان من الرأس؛ نطاق حركة مريح.','Elbows near the head; comfortable range.');
+R('pushdown','تراي كابل','Triceps pushdown','ar','triceps','m',1,'rep','elbow','مرفقان ملاصقان للجسم وإنهاء بقفل خفيف.','Elbows pinned to the sides; finish with a gentle lockout.');
+R('lat_raise','رفرفة جانبية بدمبل','Dumbbell lateral raise','ar','shoulders','w',1,'rep','shoulder','وزن خفيف وارتفاع حتى مستوى الكتف فقط.','Light weight, raise only to shoulder height.');
+R('band_lat_raise','رفرفة جانبية بالمطاط','Band lateral raise','ar','shoulders','r',1,'rep','shoulder','حركة بطيئة بلا ارتفاع الكتف.','Slow reps without shrugging.');
+// جذع
+R('plank','بلانك','Plank','co','core','n',1,'hold','','جسم مستقيم، شدّ البطن والأرداف؛ إن هبط الحوض أنهِ المجموعة.','Straight body, brace abs and glutes; end the set if hips sag.');
+R('side_plank','بلانك جانبي','Side plank','co','core','n',1,'hold','','الجسم بخط مستقيم والحوض مرفوع.','Straight line, hips lifted.');
+R('dead_bug','دد بق','Dead bug','co','core','n',1,'rep','','أسفل الظهر ملاصق للأرض أثناء مدّ الذراع والرجل المعاكسة.','Keep the low back pressed down while extending opposite limbs.');
+R('bird_dog','بيرد دوغ','Bird dog','co','core,back','n',1,'rep','','حوض ثابت لا يتمايل؛ مدّ ذراع وساق معاكستين.','Steady hips; extend opposite arm and leg.');
+R('hollow','هولو هولد','Hollow hold','co','core','n',2,'hold','','أسفل الظهر لاصق بالأرض؛ ارتفاع الساقين يحدد الصعوبة.','Low back stays on the floor; leg height sets difficulty.');
+R('knee_raise','رفع الركبتين معلّقًا','Hanging knee raise','co','core','b',1,'rep','','بلا تأرجح؛ اقلب الحوض للأعلى.','No swinging; curl the pelvis up.');
+R('leg_raise','رفع الأرجل معلّقًا','Hanging leg raise','co','core','b',2,'rep','back','ارفع بتحكم ونزّل ببطء.','Raise with control and lower slowly.');
+R('lsit','إل-سِت (L-sit)','L-sit','co','core,triceps','n',3,'hold','wrist','يدان على الأرض والرجلان ممدودتان؛ ابدأ بالركبتين مثنيتين.','Hands on the floor, legs straight; start with bent knees.');
+R('russian','التفاف روسي','Russian twist','co','core','n',1,'rep','back','حركة من الجذع لا من الذراعين.','Rotate from the torso, not the arms.');
+// ماء/كارديو عام
+R('jj','قفز نجوم (Jumping jacks)','Jumping jacks','ca','cardio','n',1,'time','','إيقاع ثابت وهبوط ناعم على مقدمة القدم.','Steady rhythm, soft landings on the forefoot.');
+R('rope','نط الحبل','Jump rope','ca','cardio,calves','j',1,'time','ankle','قفزات صغيرة والمعصمان يدوران الحبل.','Small hops, wrists turn the rope.');
+R('burpee','بيربي','Burpee','ca','cardio,chest,quads','n',2,'rep','knee,wrist','ابدأ ببطء ثم زد الإيقاع؛ تجنّبه عند ألم الركبة أو المعصم.','Start slow then speed up; skip with knee or wrist pain.');
+R('mountain','تسلق الجبل','Mountain climber','ca','cardio,core','n',1,'time','wrist','كتفان فوق اليدين وركب تتبادل بسرعة مريحة.','Shoulders over hands, alternate knees at a comfortable pace.');
+R('walk','مشي سريع','Brisk walk','run_e','cardio','n',1,'time','','نشاط قليل الصدمات يناسب الإصابات والمبتدئين.','Low-impact option for beginners and injuries.');
+R('run_e','جري خفيف (تتحدث أثناءه)','Easy run (conversational pace)','run_e','cardio','n',1,'time','knee,ankle','سرعة تسمح بالحديث؛ هذا أساس التحمل.','Pace that allows talking; the base of endurance.');
+R('run_i','جري متقطع: دقيقة سريعة ثم دقيقة خفيفة','Interval run: 1 min fast / 1 min easy','run_i','cardio','n',1,'rep','knee,ankle','السريع صعب لكن قابل للتكرار؛ احتفظ بنفس الجودة في الجولة الأخيرة.','Fast = hard but repeatable; keep the last rep as good as the first.');
+R('run_t','جري إيقاعي (Tempo)','Tempo run','run_t','cardio','n',2,'time','knee,ankle','سرعة "صعبة مريحة" تقدر على إكمالها 20-30 دقيقة.','"Comfortably hard" pace you could hold for 20-30 minutes.');
+R('run_l','جري طويل خفيف','Long easy run','run_l','cardio','n',1,'time','knee,ankle','زد المدة بنحو 10% أسبوعيًا فقط.','Increase duration by about 10% per week at most.');
+R('walk_l','مشي طويل','Long walk','run_l','cardio','n',1,'time','','بديل منخفض الصدمات للجري الطويل.','Low-impact alternative to the long run.');
+R('hill','سباق تلة قصير','Short hill sprint','sp','cardio,quads,glutes','n',3,'rep','knee,ankle','8-12 ثانية بأقصى سرعة مع راحة كاملة؛ للمتقدمين فقط.','8-12 s all-out with full rest; advanced only.');
+R('sprint_drill','تمارين سرعة (A-skip)','A-skip sprint drills','sp','quads,hams,calves','n',2,'rep','ankle','ركبتان عاليتان وإيقاع سريع بوقفة طويلة.','High knees, quick rhythm, tall posture.');
+R('agility','رشاقة بمخاريط','Cone agility drill','sp','quads,calves','n',2,'rep','ankle,knee','غيّر الاتجاه بقدمين قريبتين من الأرض.','Change direction keeping feet low.');
+R('jump_squat','قفز سكوات','Jump squat','pl','quads,glutes','n',2,'rep','knee','هبوط ناعم وركبتان للخارج؛ جودة القفز أهم من العدد.','Soft landing, knees out; quality over quantity.');
+R('skater','قفز جانبي (Skater)','Skater hops','pl','glutes,quads','n',1,'rep','ankle,knee','قفز جانبي متحكم وتوازن عند الهبوط.','Controlled lateral bounds, stick the landing.');
+R('broad_jump','قفز طويل','Broad jump','pl','quads,glutes','n',2,'rep','knee,ankle','ثبّت الهبوط ثم أعد ضبط الوضع بين القفزات.','Stick the landing and reset between jumps.');
+R('box_jump','قفز على صندوق','Box jump','pl','quads,glutes','k',3,'rep','knee,ankle','اهبط على الصندوق بنعومة وانزل بالخطوة لا بالقفز.','Land softly on the box and step down, do not jump down.');
+R('swim_e','سباحة مستمرة خفيفة','Easy continuous swim','sw_e','cardio,back,shoulders','p',1,'time','shoulder','تنفس منتظم وطول سحبة مريح.','Steady breathing and a comfortable stroke length.');
+R('swim_i','سباحة فترات 50م','50 m swim intervals','sw_i','cardio,back,shoulders','p',1,'rep','shoulder','رتّب الجهد: 50م قوية ثم راحة قصيرة.','Strong 50 m efforts with short rests.');
+R('swim_d','تمارين تقنية السباحة','Swim technique drills','sw_e','back,shoulders','p',1,'time','','ركز على وضع الجسم والدوران وليس السرعة.','Focus on body position and rotation, not speed.');
+R('bike_e','ركوب دراجة خفيف','Easy ride','cy_e','cardio,quads','c',1,'time','knee','مقاومة خفيفة وإيقاع 80-90 دورة بالدقيقة.','Light resistance at 80-90 rpm.');
+R('bike_i','فترات دراجة (دقيقتان قوية/دقيقتان خفيفة)','Bike intervals (2 min hard / 2 easy)','cy_i','cardio,quads','c',1,'rep','knee','جهد قوي ثابت وليس سباق سرعة قصوى.','Strong steady effort, not an all-out sprint.');
+R('shadow_t','ظل ملاكمة: وقفة وجاب-كروس','Shadow boxing: stance, jab-cross','bx_t','cardio,shoulders','n',1,'rnd','','تقنية آمنة بلا خصم: وقفة متوازنة، يدان عند الذقن، دوران الورك مع الكروس.','Safe solo technique: balanced stance, hands up, hip rotation on the cross.');
+R('shadow_f','ظل ملاكمة: حركة القدمين','Shadow boxing: footwork','bx_t','cardio,quads','n',1,'rnd','ankle','خطوات قصيرة وخفيفة دون عبور القدمين.','Short light steps, never cross the feet.');
+R('shadow_c','ظل ملاكمة سريع (لياقة)','Fast shadow boxing (conditioning)','bx_c','cardio,shoulders,core','n',2,'rnd','shoulder','ضربات خفيفة وسريعة؛ لا تقفل المرفق عند الضرب.','Fast, light punches; do not snap the elbow.');
+R('ma_stance','وقفات وانتقالات قتالية','Stances and transitions','ma_t','quads,core','n',1,'rnd','knee','حافظ على توازن ووزن موزع بين القدمين.','Keep balance and weight evenly spread.');
+R('ma_kick','ركلات تقنية بطيئة (توازن)','Slow technical kicks (balance)','ma_t','quads,glutes,core','n',1,'rep','knee,hip','ارفع الركبة أولًا ثم افرد الساق بتحكم؛ سرعة قليلة، جودة عالية.','Chamber the knee first, extend with control; low speed, high quality.');
+R('ma_cond','جولات لياقة قتالية','Combat conditioning rounds','ma_c','cardio,core','n',2,'rnd','','تناوب لكمات خفيفة وركلات منخفضة وحركة بإيقاع ثابت.','Alternate light strikes, low kicks and movement at a steady pace.');
+R('fb_dribble','مراوغة بالكرة (كرة قدم)','Ball dribbling (football)','sk_b','football','o',1,'time','','لمسات قصيرة قريبة من القدم والنظر للأمام.','Short close touches, eyes up.');
+R('fb_pass','تمرير على الحائط (كرة قدم)','Wall passing (football)','sk_b','football','o',1,'time','','استقبل بلمسة وأعد بلمسة؛ بالقدمين معًا.','Receive in one touch, return in one; use both feet.');
+R('bb_dribble','تحكم بالكرة (كرة سلة)','Ball handling (basketball)','sk_b','basketball','o',1,'time','','كرة منخفضة وأصابع لا كف، وبكلتا اليدين.','Low dribble, fingertips not palm, both hands.');
+R('bb_shoot','تصويب من قرب (كرة سلة)','Form shooting (basketball)','sk_b','basketball','o',1,'rep','shoulder','مرفق تحت الكرة وحركة معصم ناعمة؛ كرّر التقنية قبل البعد.','Elbow under the ball, smooth wrist snap; build form before range.');
+R('hs_prep','تحضير الوقوف على اليدين (بلانك مرتفع)','Handstand prep (pike hold)','sk_h','shoulders,core','n',1,'hold','wrist,shoulder','وركان للأعلى وكتفان مفتوحان؛ ادفع الأرض بعيدًا.','Hips high, shoulders open; push the floor away.');
+R('hs_wall','وقوف على اليدين بجانب الحائط','Wall handstand hold','sk_h','shoulders,core','n',2,'hold','wrist,shoulder,neck','بطن للحائط؛ جسم مستقيم، وإن تعبت انزل بتحكم.','Belly to the wall; straight body, descend under control when tired.');
+R('frog_stand','وقفة الضفدع','Frog stand','sk_h','shoulders,core','n',1,'hold','wrist','ركبتان على المرفقين؛ أول مهارة توازن على اليدين.','Knees on the elbows; first hand-balance skill.');
+R('tuck_planche','بلانش مطوي','Tuck planche','sk_h','shoulders,core,chest','n',3,'hold','wrist,shoulder','ميل للأمام مع كتف مدفوع وحوض مدور؛ زد المدة قبل تمديد الجسم.','Lean forward with protracted shoulders; build time before extending.');
+R('tuck_fl','فرونت ليفر مطوي','Tuck front lever','sk_h','lats,core','b',3,'hold','shoulder','ذراعان ممدودتان وكتفان للأسفل؛ ارفع الحوض لخط الجسم.','Straight arms, shoulders down; lift hips to body line.');
+R('cat_cow','قط-بقرة','Cat-cow','mb','back,core','n',1,'rep','','حركة بطيئة مع التنفس.','Slow movement with breathing.');
+R('wgs','أعظم تمدد في العالم','World\'s greatest stretch','mb','hips,hams,back','n',1,'rep','knee','خطوة اندفاع مع دوران الصدر نحو الأعلى.','Lunge step with thoracic rotation upward.');
+R('thoracic','دوران الصدر','Thoracic rotation','mb','back,shoulders','n',1,'rep','','دوران من منتصف الظهر لا من أسفله.','Rotate from the mid-back, not the lower back.');
+R('hip90','90/90 للورك','90/90 hip switch','mb','hips,glutes','n',1,'rep','knee,hip','بدّل الاتجاه ببطء وظهر منتصب.','Switch sides slowly with an upright back.');
+R('down_dog','الكلب المقلوب','Downward dog','yg','hams,shoulders,calves','n',1,'hold','wrist','اضغط الأرض واسحب الحوض للأعلى والخلف.','Press the floor and send the hips up and back.');
+R('child','وضعية الطفل','Child\'s pose','yg','back,lats','n',1,'hold','knee','تنفّس بعمق وأرخِ الكتفين.','Breathe deeply and relax the shoulders.');
+R('pigeon','وضعية الحمامة','Pigeon pose','yg','glutes,hips','n',2,'hold','knee,hip','تمدد عميق للورك؛ لا تدفع عند ألم الركبة.','Deep hip stretch; do not force it if the knee hurts.');
+R('cobra','الكوبرا','Cobra pose','yg','back,core','n',1,'hold','back','ارفع الصدر بقوة الظهر ولا تضغط أسفل الظهر.','Lift the chest with back strength; do not crunch the low back.');
+R('flow_sun','تدفق تحية الشمس','Sun salutation flow','yg','back,hams,shoulders','n',1,'time','wrist','تنفّس مع كل حركة وأبقِ الإيقاع هادئًا.','Breathe with each movement, keep a calm pace.');
+R('flow_hips','تدفق مرونة الوركين','Hip mobility flow','yg','hips,glutes','n',1,'time','knee,hip','حركات متتابعة بنطاق مريح.','Continuous movements in a comfortable range.');
+// إحماء (wu) وتهدئة (cd) — العضلات: U علوي · L سفلي · F كامل
+R('w_arm','دوائر الذراعين','Arm circles','wu','U','n',1,'rep','','دوائر صغيرة ثم كبيرة للأمام والخلف.','Small then large circles, forward and back.');
+R('w_scap','ضغط لوحي الكتف (Scap push-up)','Scapular push-up','wu','U','n',1,'rep','wrist','ذراعان مستقيمتان؛ حرّك لوحي الكتف فقط.','Straight arms; move only the shoulder blades.');
+R('w_dislocate','تدوير الكتف بالمطاط/المنشفة','Band/towel shoulder dislocate','wu','U','n',1,'rep','shoulder','قبضة عريضة وحركة بطيئة بلا ألم.','Wide grip, slow and pain-free.');
+R('w_swing','أرجحة الأرجل','Leg swings','wu','L','n',1,'rep','','أمامًا وخلفًا ثم جانبيًا بنطاق متدرج.','Front-back then side-to-side, gradually increasing range.');
+R('w_hipc','دوائر الورك','Hip circles','wu','L','n',1,'rep','','دوائر كبيرة بالركبة والورك.','Large circles from the knee and hip.');
+R('w_squat','سكوات خفيف للتنشيط','Activation squats','wu','L','n',1,'rep','','وتيرة بطيئة بلا حمل.','Slow tempo, no load.');
+R('w_jj','قفز نجوم خفيف','Easy jumping jacks','wu','F','n',1,'rep','','ارفع الحرارة تدريجيًا.','Raise body temperature gradually.');
+R('w_cat','قط-بقرة تنشيطي','Cat-cow activation','wu','F','n',1,'rep','','حركة العمود ببطء مع التنفس.','Move the spine slowly with breathing.');
+R('c_chest','تمدد الصدر على الحائط','Doorway chest stretch','cd','U','n',1,'hold','shoulder','لا تدفع للألم؛ تنفس ببطء.','Never push into pain; breathe slowly.');
+R('c_lat','تمدد الظهر العريض','Lat stretch','cd','U','n',1,'hold','','اسحب الجذع للجانب بنَفَس بطيء.','Reach sideways with slow breaths.');
+R('c_tri','تمدد الترايسبس','Triceps stretch','cd','U','n',1,'hold','shoulder','ثبّت المرفق فوق الرأس بلطف.','Gently hold the elbow overhead.');
+R('c_ham','تمدد الفخذ الخلفي','Hamstring stretch','cd','L','n',1,'hold','','ظهر مستقيم وانحناء من الورك.','Straight back, fold from the hips.');
+R('c_quad','تمدد الفخذ الأمامي','Quad stretch','cd','L','n',1,'hold','knee','اسحب القدم نحو الأرداف مع ركبتين متقاربتين.','Pull the foot to the glutes with knees together.');
+R('c_hip','تمدد ثني الورك','Hip flexor stretch','cd','L','n',1,'hold','knee','اعصر الأرداف الخلفية مع دفع الورك للأمام.','Squeeze the rear glute while pushing the hip forward.');
+R('c_calf','تمدد السمانة','Calf stretch','cd','L','n',1,'hold','','كعب ملتصق بالأرض ودفع الجدار.','Heel down, press into the wall.');
+R('c_breath','تنفس تعافٍ (تنفس بطني)','Recovery breathing','cd','F','n',1,'hold','','شهيق 4 ثوانٍ وزفير 6 لخفض النبض.','Inhale 4 s, exhale 6 s to lower heart rate.');
+rows.forEach(r=>{D[r[0]]={k:r[0],ar:r[1],en:r[2],pt:r[3],mu:r[4].split(','),eq:r[5],lv:r[6],kd:r[7],st:r[8]?r[8].split(','):[],ca:r[9],ce:r[10]}});
+const PC={ph:['ادفع بجسم ثابت وبلا هبوط للحوض.','Press with a stable trunk.'],pv:['اضغط فوق الرأس مع شدّ البطن.','Press overhead with braced abs.'],rh:['اسحب بالكتفين للأسفل والخلف.','Pull with shoulders down and back.'],rv:['ابدأ من تعلق وانتهِ بذقن فوق البار.','Start from a hang, finish with chin over the bar.'],sq:['ظهر محايد وركبتان باتجاه القدمين.','Neutral back, knees over toes.'],hg:['ثنية من الورك وظهر محايد.','Hinge from the hips, neutral back.'],lg:['خطوة ثابتة وجذع منتصب.','Stable step, upright torso.'],co:['شدّ البطن ولا تحبس النفس.','Brace the abs and keep breathing.']};
+const L=(e,l)=>l=='ar'?e.ar:e.en;
+const cue=(e,l)=>(l=='ar'?e.ca:e.ce)||(PC[e.pt]?PC[e.pt][l=='ar'?0:1]:'');
+const EQW={none:'n',home:'n',bar:'b',pullup_bar:'b',dip_bars:'d',parallel_bars:'d',dumbbells:'w',dumbbell:'w',barbell:'x',bench:'e',machines:'m',machine:'m',cable:'m',bands:'r',band:'r',rope:'j',pool:'p',bike:'c',ball:'o',box:'k'};
+function eqSet(a){const s=new Set(['n']);(Array.isArray(a)?a:[a]).forEach(w=>{w=String(w||'').toLowerCase().trim();if(w=='gym'||w=='full_gym'){'bdwxemrk'.split('').forEach(c=>s.add(c))}else if(EQW[w])s.add(EQW[w]);else if(/^[bdwxemrjpcok]$/.test(w))s.add(w)});return s}
+const SPORTS={gym:'gym',fitness:'gym',general:'gym',calisthenics:'cal',street_workout:'cal',bodyweight:'cal',bodybuilding:'bb',powerlifting:'pl',strength:'st',cardio:'run',endurance:'run',running:'run',athletics:'run',football:'fb',soccer:'fb',basketball:'bk',swimming:'sw',boxing:'bx',martial_arts:'ma',cycling:'cy',yoga:'yg',mobility:'yg',flexibility:'yg',functional:'fn'};
+const LV={beginner:1,intermediate:2,advanced:3};
+// حصص: كل خانة {p:[أنماط],r:دور m=أساسي a=مساعد c=جذع x=لياقة}
+const S=(...a)=>a.map(x=>typeof x=='string'?{p:x.split('|'),r:'m'}:x);
+const A=p=>({p:p.split('|'),r:'a'}),C=p=>({p:p.split('|'),r:'c'}),X=p=>({p:p.split('|'),r:'x'});
+const SES={
+FA:[S('sq','ph','rh'),S('hg|lg'),[C('co')]].flat(),FB:[S('hg','pv','rv|rh'),S('lg'),[C('co')]].flat(),FC:[S('lg|sq','ph','rh'),[A('hg'),C('co')]].flat(),
+UP:[S('ph','rh','pv','rv'),[A('ar'),C('co')]].flat(),LO:[S('sq','hg','lg'),[A('cv'),C('co')]].flat(),
+PUSH:[S('ph','pv'),[A('ph'),A('ar'),A('ar')]].flat(),PULL:[S('rv','rh'),[A('rh|rv'),A('ar'),A('rh')]].flat(),LEGS:[S('sq','hg','lg'),[A('cv'),C('co')]].flat(),
+SKILL:[S('sk_h'),[A('sk_h'),C('co'),C('co'),A('mb')]].flat(),COND:[X('ca'),X('ca'),X('pl|ca'),C('co')],
+PL_SQ:[S('sq','hg'),[A('lg'),C('co')]].flat(),PL_BP:[S('ph','pv'),[A('rh'),A('ar')]].flat(),PL_DL:[S('hg','rh'),[A('sq'),C('co')]].flat(),PL_UP:[S('rv','rh'),[A('ph'),A('ar'),C('co')]].flat(),
+PUP:[{p:['rv'],r:'m',lad:1},{p:['rv'],r:'m',lad:2},A('rh'),A('ar'),C('co')],
+RUN_E:[X('run_e'),C('co'),A('mb')],RUN_I:[X('run_i'),C('co')],RUN_T:[X('run_t'),A('mb')],RUN_L:[X('run_l'),A('mb')],STR_R:[S('sq','hg'),[A('lg'),A('cv'),C('co')]].flat(),
+SW_E:[X('sw_e'),A('mb')],SW_I:[X('sw_i'),X('sw_e')],DRY:[S('rv|rh','ph'),[A('rh'),C('co'),A('mb')]].flat(),
+CY_E:[X('cy_e'),A('mb')],CY_I:[X('cy_i'),C('co')],
+BX_T:[X('bx_t'),X('bx_t'),X('bx_c'),C('co')],BX_C:[X('ca'),X('bx_c'),X('ca'),C('co')],
+MA_T:[X('ma_t'),X('ma_t'),A('mb'),C('co')],MA_C:[X('ma_c'),X('ca'),C('co')],
+PWR:[S('sq'),[A('pl'),A('pl'),A('hg'),C('co')]].flat(),SPD:[X('sp'),X('sp'),A('pl'),C('co')],SKL:[X('sk_b'),X('sk_b'),X('ca'),A('mb')],CND:[X('run_i'),X('ca'),C('co')],
+YG1:[X('yg'),X('yg'),X('yg'),X('mb')],YG2:[X('mb'),X('yg'),X('yg')],FN:[S('sq','ph','rh'),[A('hg'),X('ca'),C('co')]].flat(),MOB:[X('mb'),X('yg'),X('mb')],REC:[X('mb'),X('yg')]
+};
+const NAMES={FA:['جسم كامل A','Full body A'],FB:['جسم كامل B','Full body B'],FC:['جسم كامل C','Full body C'],UP:['علوي: صدر وظهر وأكتاف','Upper body'],LO:['سفلي: أرجل وأرداف وجذع','Lower body'],PUSH:['دفع: صدر وأكتاف وتراي','Push'],PULL:['سحب: ظهر وبايسبس','Pull'],LEGS:['أرجل وأرداف','Legs'],SKILL:['مهارات وتحكم (وقوف على اليدين وجذع)','Skills and control'],COND:['لياقة وتكييف','Conditioning'],PL_SQ:['يوم السكوات','Squat day'],PL_BP:['يوم الضغط','Press day'],PL_DL:['يوم الديدلفت والسحب','Deadlift and pull day'],PL_UP:['مساعدة علوية','Upper accessories'],PUP:['تطوير العقلة','Pull-up development'],RUN_E:['جري خفيف','Easy run'],RUN_I:['جري متقطع','Interval run'],RUN_T:['جري إيقاعي','Tempo run'],RUN_L:['جري طويل','Long run'],STR_R:['قوة للعدائين','Strength for runners'],SW_E:['سباحة تحمل','Endurance swim'],SW_I:['سباحة فترات','Swim intervals'],DRY:['تدريب جاف للسباح','Swimmer dryland'],CY_E:['دراجة خفيفة','Easy ride'],CY_I:['دراجة فترات','Bike intervals'],BX_T:['ملاكمة: تقنية وحركة','Boxing: technique and footwork'],BX_C:['ملاكمة: لياقة','Boxing: conditioning'],MA_T:['فنون قتالية: تقنية','Martial arts: technique'],MA_C:['فنون قتالية: لياقة','Martial arts: conditioning'],PWR:['قوة وقفز','Power'],SPD:['سرعة ورشاقة','Speed and agility'],SKL:['مهارات بالكرة','Ball skills'],CND:['تحمل رياضي','Sport conditioning'],YG1:['يوغا: تدفق','Yoga flow'],YG2:['يوغا ومرونة','Yoga and flexibility'],FN:['تدريب وظيفي','Functional circuit'],MOB:['مرونة وحركة','Mobility'],REC:['تعافٍ نشط','Active recovery']};
+const FOCUS={FA:'F',FB:'F',FC:'F',UP:'U',LO:'L',PUSH:'U',PULL:'U',LEGS:'L',SKILL:'U',COND:'F',PL_SQ:'L',PL_BP:'U',PL_DL:'L',PL_UP:'U',PUP:'U',RUN_E:'L',RUN_I:'L',RUN_T:'L',RUN_L:'L',STR_R:'L',SW_E:'U',SW_I:'U',DRY:'U',CY_E:'L',CY_I:'L',BX_T:'F',BX_C:'F',MA_T:'F',MA_C:'F',PWR:'L',SPD:'L',SKL:'F',CND:'F',YG1:'F',YG2:'F',FN:'F',MOB:'F',REC:'F'};
+function split(sp,n,lv,eq,goal){
+ const has=c=>eq.has(c),big=lv>=2;
+ if(sp=='cal'){return n==3?['FA','FB','FC']:n==4?['PUSH','PULL','LEGS','SKILL']:n==5?['PUSH','PULL','LEGS','SKILL','COND']:['PUSH','PULL','LEGS','PUSH','PULL','SKILL']}
+ if(sp=='bb'){return n==3?['FA','FB','FC']:n==4?['UP','LO','UP','LO']:n==5?['PUSH','PULL','LEGS','UP','LO']:['PUSH','PULL','LEGS','PUSH','PULL','LEGS']}
+ if(sp=='pl'){if(!has('x'))return split('st',n,lv,eq,goal);return n==3?['PL_SQ','PL_BP','PL_DL']:n==4?['PL_SQ','PL_BP','PL_DL','PL_UP']:n==5?['PL_SQ','PL_BP','PL_DL','PL_UP','LO']:['PL_SQ','PL_BP','PL_DL','PL_UP','LO','MOB']}
+ if(sp=='st'){return n==3?['FA','FB','FC']:n==4?['UP','LO','UP','LO']:n==5?['UP','LO','PUSH','PULL','LEGS']:['PUSH','PULL','LEGS','PUSH','PULL','LEGS']}
+ if(sp=='run'){if(has('c')&&!has('n_'))return n==3?['RUN_E','CY_I','RUN_L']:split('run',n,lv,new Set(),goal);return n==3?['RUN_E','RUN_I','RUN_L']:n==4?['RUN_E','RUN_I','STR_R','RUN_L']:n==5?['RUN_E','RUN_I','STR_R','RUN_T','RUN_L']:['RUN_E','RUN_I','STR_R','RUN_T','MOB','RUN_L']}
+ if(sp=='cy'){if(!has('c'))return split('run',n,lv,eq,goal);return n==3?['CY_E','CY_I','CY_E']:n==4?['CY_E','CY_I','STR_R','CY_E']:n==5?['CY_E','CY_I','STR_R','CY_I','CY_E']:['CY_E','CY_I','STR_R','CY_E','MOB','CY_E']}
+ if(sp=='sw'){if(!has('p'))return n==3?['DRY','COND','MOB']:split('run',n,lv,eq,goal);return n==3?['SW_E','DRY','SW_I']:n==4?['SW_E','DRY','SW_I','SW_E']:n==5?['SW_E','DRY','SW_I','SW_E','MOB']:['SW_E','DRY','SW_I','SW_E','DRY','MOB']}
+ if(sp=='bx'){return n==3?['BX_T','FA','BX_C']:n==4?['BX_T','FA','BX_C','BX_T']:n==5?['BX_T','FA','BX_C','BX_T','MOB']:['BX_T','FA','BX_C','BX_T','FB','MOB']}
+ if(sp=='ma'){return n==3?['MA_T','FA','MA_C']:n==4?['MA_T','FA','MA_C','MA_T']:n==5?['MA_T','FA','MA_C','MA_T','MOB']:['MA_T','FA','MA_C','MA_T','FB','MOB']}
+ if(sp=='fb'||sp=='bk'){const sk=sp=='fb'?'SKL':'SKL';return n==3?['FA','SPD',sk]:n==4?['FA','SPD','PWR','CND']:n==5?['FA','SPD',sk,'PWR','CND']:['FA','SPD',sk,'PWR','CND','MOB']}
+ if(sp=='yg'){return n==3?['YG1','YG2','MOB']:n==4?['YG1','YG2','MOB','YG1']:n==5?['YG1','YG2','MOB','YG1','YG2']:['YG1','YG2','MOB','YG1','YG2','REC']}
+ if(sp=='fn'){return n==3?['FN','FN','FN']:n==4?['FN','FN','COND','FN']:n==5?['FN','FN','COND','FN','MOB']:['FN','FN','COND','FN','FN','MOB']}
+ return n==3?['FA','FB','FC']:n==4?['UP','LO','UP','LO']:n==5?['PUSH','PULL','LEGS','UP','LO']:['PUSH','PULL','LEGS','PUSH','PULL','LEGS'];
+}
+const DAYSET={3:[1,3,5],4:[1,2,4,5],5:[1,2,3,5,6],6:[1,2,3,4,5,6]};
+const PARAM={strength:{s:[3,4,5],r:5,rb:6,rest:150,hold:20},hypertrophy:{s:[3,3,4],r:10,rb:10,rest:75,hold:30},endurance:{s:[2,3,3],r:16,rb:16,rest:40,hold:40},fatloss:{s:[2,3,3],r:13,rb:13,rest:45,hold:35},general:{s:[2,3,3],r:12,rb:12,rest:60,hold:30},skill:{s:[3,4,5],r:5,rb:5,rest:90,hold:15}};
+function mb32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hseed(s){let h=2166136261;for(const c of String(s)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+function norm(p){p=p||{};const sl=(Array.isArray(p.sport)?p.sport:[p.sport||'gym']).map(x=>SPORTS[String(x||'gym').toLowerCase().replace(/[\s-]+/g,'_')]||'gym').filter((x,i,a)=>a.indexOf(x)==i).slice(0,3),sp=sl[0];let goal=String(p.goal||'general').toLowerCase();if(!PARAM[goal])goal=goal=='fat_loss'||goal=='weight_loss'?'fatloss':goal=='muscle'||goal=='hypertrophy'?'hypertrophy':goal=='cardio'?'endurance':'general';
+ let lv=LV[String(p.level||'').toLowerCase()]||(+p.level>=1&&+p.level<=3?Math.floor(+p.level):1);if(sp=='cal'&&goal=='general')goal='skill';
+ const age=+p.age>0?Math.floor(+p.age):0,days=Math.min(6,Math.max(3,Math.floor(+p.days||(Array.isArray(p.dayList)?p.dayList.length:0)||3)));
+ const eq=eqSet(p.equipment||p.equip||'none');const lim=new Set((Array.isArray(p.limits)?p.limits:[]).map(x=>String(x).toLowerCase()));
+ if(age&&age<14)lv=1;
+ return{sp,sports:sl,focus:String(p.focus||'').toLowerCase(),max:Math.max(0,Math.floor(+p.max)||0),goal,lv,age,days,eq,lim,min:Math.min(120,Math.max(15,Math.floor(+p.minutes)||45)),lang:p.lang=='en'||p.lang=='fr'?'en':'ar',variant:+p.variant||0,dayList:Array.isArray(p.dayList)?p.dayList.filter(d=>Number.isInteger(d)&&d>=0&&d<=6):null}}
+function ok(e,p,cap,sp){if(e.lv>cap)return false;for(const c of e.eq)if(!p.eq.has(c))return false;if(e.st.some(x=>p.lim.has(x)))return false;
+ if(p.age&&p.age<14&&(e.eq.includes('x')||e.lv>=3||e.pt=='pl'||e.pt=='sp'&&e.lv>=3))return false;
+ if(p.age&&p.age<18&&e.eq.includes('x')&&e.lv>=3)return false;
+ if(p.age>=50&&(e.pt=='pl'||e.k=='hill'||e.k=='burpee'||e.k=='box_jump'))return false;
+ if(e.pt=='sk_b'&&!((e.mu.includes('football')&&p.sports.includes('fb'))||(e.mu.includes('basketball')&&p.sports.includes('bk'))))return false;return true}
+const LAD=['scap_pull','neg_pullup','band_pullup','pullup','chinup','wide_pullup','archer_pullup','high_pullup'];
+function ladPick(slot,ctx){const{p,used,week}=ctx,m=p.max;const sets=m<1?[['scap_pull','neg_pullup'],['table_row','aus_row','band_row']]:m<5?[['neg_pullup','band_pullup'],['band_pullup','scap_pull']]:m<10?[['pullup','chinup'],['neg_pullup','chinup']]:[['wide_pullup','chinup','pullup'],['archer_pullup','high_pullup','chinup']];
+ const want=sets[slot.lad==1?0:1].map(k=>D[k]).filter(e=>e&&!used.has(e.k)&&ok(e,p,3));return want.sort((a,b)=>(week[a.k]||0)-(week[b.k]||0))[0]||null}
+const FBK={run_i:['run_e'],run_t:['run_e'],run_l:['run_e'],cy_i:['cy_e'],cy_e:['run_e'],sw_i:['sw_e'],sw_e:['run_e'],bx_c:['bx_t','ca'],bx_t:['ca'],ma_c:['ma_t','ca'],ma_t:['mb'],sp:['ca'],pl:['ca'],sk_b:['ca'],sk_h:['co'],yg:['mb'],mb:['yg'],ca:['run_e']};
+function pickEx(slot,ctx){const{p,used,week,rnd,cap}=ctx;if(slot.lad){const e=ladPick(slot,ctx);if(e)return e}let pool=[];slot.p.forEach(pt=>{Object.values(D).forEach(e=>{if(e.pt==pt&&ok(e,p,cap)&&!used.has(e.k))pool.push(e)})});
+ if(!pool.length&&slot.r!='c'){/* لا بديل مناسب: خفّض المستوى المطلوب */pool=[];slot.p.forEach(pt=>Object.values(D).forEach(e=>{if(e.pt==pt&&ok(e,p,Math.max(1,cap-1))&&!used.has(e.k))pool.push(e)}))}
+ if(!pool.length&&slot.r!='c'){slot.p.forEach(pt=>(FBK[pt]||[]).forEach(f=>Object.values(D).forEach(e=>{if(e.pt==f&&ok(e,p,cap)&&!used.has(e.k))pool.push(e)})))}
+ if(!pool.length)return null;
+ const sc=e=>(e.lv==cap?2:e.lv==cap-1?1:0)+rnd()*1.2-(week[e.k]||0)*1.6+(slot.r=='m'&&e.eq!='n'&&p.eq.size>1?0.4:0);
+ pool.sort((a,b)=>sc(b)-sc(a));return pool[0]}
+function altOf(e,p,cap,rnd){const c=Object.values(D).filter(x=>x.pt==e.pt&&x.k!=e.k&&ok(x,p,cap)&&x.lv<=e.lv&&x.kd==e.kd&&x.mu[0]==e.mu[0]);const c2=c.length?c:Object.values(D).filter(x=>x.pt==e.pt&&x.k!=e.k&&ok(x,p,cap)&&x.kd==e.kd);return c2.length?c2[Math.floor(rnd()*c2.length)]:null}
+function dose(e,slot,p,pm,lvI){const kid=p.age&&p.age<14,teen=p.age&&p.age<18;let s=pm.s[lvI];let r=e.eq=='n'||'bdr'.includes(e.eq[0])?pm.rb:pm.r,rest=pm.rest;
+ if(slot.r=='a'){s=Math.max(2,s-1);r=Math.min(20,r+3);rest=Math.max(30,rest-30)}
+ if(slot.r=='c'){s=Math.max(2,Math.min(3,s));r=12;rest=45}
+ if(teen){s=Math.min(s,3);r=Math.max(r,8);rest=Math.max(rest,60)}if(kid){s=Math.min(s,2);r=Math.max(r,10)}
+ if(e.kd=='hold'){r=Math.max(15,Math.round((pm.hold+(lvI*5))/5)*5);if(slot.r=='c')r=Math.max(20,r);rest=Math.min(rest,60)}
+ else if(e.kd=='time'){s=1;r=slot.r=='x'?[15,20,25][lvI]:[10,15,20][lvI];if(e.pt=='run_l')r=[25,35,50][lvI];if(e.pt=='run_t')r=[15,20,25][lvI];rest=0}
+ else if(e.kd=='rnd'){s=[3,4,5][lvI];r=1;rest=45;if(kid||teen)s=Math.min(s,3)}
+ else if(e.pt=='run_i'||e.pt=='cy_i'||e.pt=='sw_i'){s=1;r=[6,8,10][lvI];rest=0}
+ else if(e.pt=='sp'||e.pt=='pl'){s=Math.min(s,4);r=e.pt=='sp'?6:6;rest=Math.max(rest,75)}
+ else if(e.pt=='sk_b'){s=1;r=[10,12,15][lvI];rest=0}
+ else if(['rep'].includes(e.kd)&&(e.pt=='ca')){s=2;r=12;rest=30}
+ return{s,r,rest}}
+function est(it){return it.s*((it.k=='rep'||it.k=='rnd'?0:0)+(it.kd=='time'?it.r*60:it.kd=='hold'?it.r:it.kd=='rnd'?120:(it.pt=='run_i'?it.r*120:it.pt=='sw_i'?it.r*90:it.pt=='cy_i'?it.r*240:it.pt=='sk_b'?it.r*40:it.r*3.5+25))+it.rs)/60}
+function mk(e,slot,p,pm,lvI,rnd,cap){const d=dose(e,slot,p,pm,lvI);const al=altOf(e,p,cap,rnd);const L=p.lang;
+ let n=L=='ar'?e.ar:e.en;if(e.kd=='hold')n+=L=='ar'?' (ثانية)':' (sec)';else if(e.kd=='time')n+=L=='ar'?' (دقيقة)':' (min)';else if(e.kd=='rnd')n+=L=='ar'?' (جولة 2 د)':' (2-min round)';else if(e.pt=='run_i'||e.pt=='cy_i'||e.pt=='sw_i'||e.pt=='sk_b')n+=L=='ar'?' (تكرار)':' (reps)';
+ return{k:e.k,pt:e.pt,kd:e.kd,mu:e.mu,n,s:d.s,r:d.r,rs:d.rest,nt:cue(e,L),al:al?(L=='ar'?al.ar:al.en):'',lv:e.lv==1?'b':e.lv==2?'i':'a',ph:slot.ph||''}}
+function pickWC(kind,fc,p,rnd,n,week){const out=[];const pool=Object.values(D).filter(e=>e.pt==kind&&(e.mu[0]==fc||e.mu[0]=='F'||fc=='F')&&!e.st.some(x=>p.lim.has(x)));pool.sort(()=>rnd()-0.5);const cnt=kind=='wu'?n:n;const sel=pool.slice(0,cnt);sel.forEach(e=>{const L=p.lang;out.push({k:e.k,pt:e.pt,kd:e.kd,mu:e.mu,n:(L=='ar'?e.ar:e.en)+(e.kd=='hold'?(L=='ar'?' (ثانية)':' (sec)'):''),s:kind=='wu'?1:1,r:e.kd=='hold'?(kind=='cd'?30:20):10,rs:0,nt:cue(e,L),al:'',lv:'b',ph:kind=='wu'?'w':'c'})});return out}
+const REC=(l)=>l=='ar'?'راحة نشطة: مشي 20-30 دقيقة وتمدد خفيف. لا تدريب شاقًا اليوم.':'Active rest: 20-30 min walk and light stretching. No hard training today.';
+const GOALTXT={strength:['قوة','strength'],hypertrophy:['بناء عضلات','muscle building'],endurance:['تحمل','endurance'],fatloss:['لياقة وحرق دهون','conditioning and fat loss'],general:['لياقة عامة','general fitness'],skill:['مهارة وتحكم','skill and control']};
+function gen(params){const p=norm(params),pm=PARAM[p.goal],lvI=p.lv-1,L=p.lang,warns=[];
+ const rnd=mb32(hseed([p.sp,p.goal,p.lv,p.days,[...p.eq].sort().join(''),[...p.lim].sort().join(''),p.age,p.min,p.variant].join('|')));
+ let kinds=null;const F={pullup:{3:['PUP','FA','PUP'],4:['PUP','LEGS','PUP','PUSH'],5:['PUP','PUSH','LEGS','PUP','COND'],6:['PUP','PUSH','LEGS','PUP','SKILL','COND']},upper:{3:['PUSH','PULL','LO'],4:['PUSH','PULL','LO','UP'],5:['PUSH','PULL','LO','UP','PULL'],6:['PUSH','PULL','LO','PUSH','PULL','COND']},lower:{3:['LO','UP','LEGS'],4:['LO','UP','LEGS','COND'],5:['LO','UP','LEGS','PUSH','LO'],6:['LO','PUSH','LEGS','PULL','LO','COND']}};
+ if(F[p.focus]&&p.sports.length==1)kinds=F[p.focus][p.days];
+ else if(p.sports.length>1){const ls=p.sports.map(x=>split(x,p.days,p.lv,p.eq,p.goal)),ix=ls.map(()=>0);kinds=[];for(let i=0;i<p.days;i++){const k=i%ls.length,L2=ls[k];kinds.push(L2[ix[k]%L2.length]);ix[k]++}}
+ else kinds=split(p.sp,p.days,p.lv,p.eq,p.goal);
+ if(p.lv==1&&p.days>=5){const hard=['FA','FB','FC','UP','LO','PUSH','PULL','LEGS','PL_SQ','PL_BP','PL_DL','PL_UP'];let cnt=0;kinds=kinds.map(k=>hard.includes(k)&&++cnt>4?'COND':k);if(kinds.includes('COND')||cnt>4)warns.push(L=='ar'?'المستوى مبتدئ: حددت أيام القوة بـ4 كحد أقصى وجعلت الباقي لياقة خفيفة لحماية التعافي.':'Beginner level: capped strength days at 4 and made the rest light conditioning to protect recovery.')}
+ if(p.sp=='pl'&&!p.eq.has('x'))warns.push(L=='ar'?'لا يتوفر بار؛ استعملت برنامج قوة بديلًا بدل رفع القوى.':'No barbell available; used a general strength template instead of powerlifting.');
+ if(p.sp=='sw'&&!p.eq.has('p'))warns.push(L=='ar'?'لا يتوفر مسبح؛ برنامج السباحة صار تدريبًا جافًا ولياقة.':'No pool available; swimming plan became dryland and conditioning.');
+ if(p.sp=='cy'&&!p.eq.has('c'))warns.push(L=='ar'?'لا تتوفر دراجة؛ استبدلتها بتحمل بالجري/المشي.':'No bike available; replaced with run/walk endurance.');
+ if((p.sp=='fb'||p.sp=='bk')&&!p.eq.has('o'))warns.push(L=='ar'?'لا تتوفر كرة؛ بعض تمارين المهارة بالكرة لن تظهر.':'No ball available; ball-skill drills will be limited.');
+ if(p.age&&p.age<18)warns.push(L=='ar'?'تحت 18: حجم متوسط، بلا حمل أقصى وبلا رفع ثقيل جدًا؛ التقنية أولًا.':'Under 18: moderate volume, no max-effort or very heavy lifting; technique first.');
+ if(p.age>=50)warns.push(L=='ar'?'فوق 50: استبعدت القفز والحركات عالية الصدمات.':'Over 50: removed jumping and high-impact moves.');
+ const dl=p.dayList&&p.dayList.length>=p.days?p.dayList.slice(0,p.days).sort((a,b)=>a-b):DAYSET[p.days];const week={},days={};
+ let blocked=0;
+ kinds.forEach((kind,i)=>{const used=new Set(),ctx={p,used,week,rnd,cap:p.lv};const slots=SES[kind]||SES.FA;let items=[];
+  slots.forEach(sl=>{const e=pickEx(sl,ctx);if(!e)return;used.add(e.k);items.push({it:mk(e,sl,p,pm,lvI,rnd,p.lv),sl})});
+  const budget=p.min-9;let total=()=>items.reduce((a,b)=>a+est(b.it),0);
+  while(items.length>3&&total()>budget){let j=-1;for(let q=items.length-1;q>=0;q--)if(items[q].sl.r!='m'){j=q;break}if(j<0)break;items.splice(j,1)}
+  let g=0;while(total()>budget&&g++<12){let ch=false;items.forEach(x=>{if(x.it.s>2&&x.it.kd!='time'&&x.it.kd!='rnd'){x.it.s--;ch=true}});if(!ch)break}
+  g=0;while(total()>budget&&g++<30){const t=items.find(x=>x.it.kd=='time'&&x.sl.r!='c'&&x.it.r>10);if(!t)break;t.it.r=Math.max(10,t.it.r-Math.ceil(total()-budget));}
+  items.forEach(x=>{week[x.it.k]=(week[x.it.k]||0)+1});
+  const fc=FOCUS[kind]||'F';const wu=pickWC('wu',fc,p,rnd,3,week),cd=pickWC('cd',fc,p,rnd,3,week);
+  const main=items.map(x=>x.it);if(!main.length)blocked++;
+  days[dl[i]]={kind,goal:(L=='ar'?NAMES[kind][0]:NAMES[kind][1])+' · '+(L=='ar'?GOALTXT[p.goal][0]:GOALTXT[p.goal][1]),items:[...wu,...main,...cd],rec:false}});
+ for(let d=0;d<7;d++)if(!days[d])days[d]={kind:'REC',goal:REC(L),items:[],rec:true};
+ const prog={strength:['زد الوزن 2.5% (أو تكرارًا واحدًا لوزن الجسم) عندما تتم كل المجموعات بجودة، وخفّف حمل الأسبوع كل 4-6 أسابيع.','Add 2.5% load (or one rep for bodyweight) when every set is clean; deload every 4-6 weeks.'],hypertrophy:['عندما تبلغ أعلى التكرارات في كل المجموعات زد الوزن قليلًا أو اختر نسخة أصعب، مع تغذية ونوم كافيين.','When you hit the top reps on all sets add a little load or move to a harder variation, with enough food and sleep.'],endurance:['زد المدة الإجمالية نحو 10% أسبوعيًا مع أسبوع أخف كل 3-4 أسابيع.','Increase total duration by ~10% weekly with a lighter week every 3-4 weeks.'],fatloss:['زد الجهد بتقليل الراحة أو زيادة تكرار واحد، ولا تقلّل الأكل بصورة قاسية.','Progress by shortening rest or adding a rep; avoid harsh calorie cuts.'],general:['زد تكرارًا أو مجموعة واحدة كل أسبوعين عندما يصير البرنامج سهلًا.','Add a rep or a set every two weeks once the plan feels easy.'],skill:['ثبّت المهارة بمدة أطول قبل الانتقال لنسخة أصعب؛ الجودة أولًا.','Own the skill for longer holds before moving to a harder version; quality first.']}[p.goal][L=='ar'?0:1];
+ return{name:(L=='ar'?'برنامج ':'Program ')+p.days+(L=='ar'?' أيام · ':' days · ')+(L=='ar'?GOALTXT[p.goal][0]:GOALTXT[p.goal][1]),days,meta:{sport:p.sp,goal:p.goal,level:p.lv,days:p.days,minutes:p.min,age:p.age},prog,warns,dayList:dl}}
+// ===== المحلل =====
+const nz=s=>String(s||'').toLowerCase().replace(/\(.*?\)/g,'').replace(/[\u064B-\u065F\u0640]/g,'').replace(/[^\p{L}\p{N}]+/gu,'');
+const IDX=Object.values(D).map(e=>({e,a:nz(e.ar),b:nz(e.en)}));
+const AL={ضغط:'pushup',ضغطعادي:'pushup',pushup:'pushup',pushups:'pushup',ضغطصدر:'bench_press',بنش:'bench_press',بنشبرس:'bench_press',benchpress:'bench_press',bench:'bench_press',عقلة:'pullup',عقله:'pullup',pullup:'pullup',pullups:'pullup',سكوات:'bw_squat',squat:'bw_squat',squats:'bw_squat',squatبار:'back_squat',ديدلفت:'deadlift',deadlift:'deadlift',متوازي:'dips',dips:'dips',dip:'dips',بلانك:'plank',plank:'plank',كرنش:'russian',crunch:'russian',crunches:'russian',اندفاع:'lunge',lunges:'lunge',lunge:'lunge',بايسبس:'curl',biceps:'curl',curl:'curl',ترايسبس:'tri_ext',triceps:'tri_ext',كتف:'db_press',ضغطكتف:'ohp',shoulderpress:'db_press',رفرفة:'lat_raise',lateralraise:'lat_raise',تجديف:'barbell_row',row:'barbell_row',rows:'barbell_row',جري:'run_e',running:'run_e',run:'run_e',مشي:'walk',نطالحبل:'rope',jumprope:'rope',بيربي:'burpee',burpee:'burpee'};
+function match(it){if(it&&it.ek&&D[it.ek]){const e0=D[it.ek],q0=nz(it.n);if(!q0||q0==nz(e0.ar)||q0==nz(e0.en))return e0}const n=nz(it&&it.n);if(n.length<2)return null;if(AL[n]&&D[AL[n]])return D[AL[n]];let f=IDX.find(x=>x.a==n||x.b==n);if(f)return f.e;f=IDX.find(x=>(x.a.length>=4&&n.includes(x.a))||(x.b.length>=4&&n.includes(x.b)));if(f)return f.e;if(n.length>=5){f=IDX.find(x=>x.a.includes(n)||x.b.includes(n));if(f)return f.e}return null}
+const PUSHP=['ph','pv'],PULLP=['rh','rv'],LEGP=['sq','hg','lg','cv'];
+function audit(plan,goals){const A={trainingDays:0,restDays:0,setsByMuscle:{},push:0,pull:0,legs:0,core:0,flags:[],unknown:0,sessionSets:{}};const tr=[];
+ for(let d=0;d<7;d++){const list=(plan&&plan[d]||[]).filter(w=>String(w.n||'').trim());const main=list.filter(w=>w.ph!='w'&&w.ph!='c');if(!main.length){A.restDays++;continue}A.trainingDays++;tr.push(d);let ss=0;A.exercises=(A.exercises||0)+main.length;const muD=new Set();
+  main.forEach(w=>{const e=match(w),s=Math.max(1,+w.s||1);ss+=s;if(!e){A.unknown++;return}A.matched=(A.matched||0)+1;e.mu.forEach((m,i)=>{if(m=='cardio'||m=='football'||m=='basketball')return;A.setsByMuscle[m]=(A.setsByMuscle[m]||0)+(i==0?s:s*0.5);if(i==0)muD.add(m)});
+   if(PUSHP.includes(e.pt))A.push+=s;else if(PULLP.includes(e.pt))A.pull+=s;else if(LEGP.includes(e.pt))A.legs+=s;else if(e.pt=='co')A.core+=s});A.sessionSets[d]=ss;A['m'+d]=muD}
+ const tot=A.push+A.pull+A.legs+A.core;
+ if(!A.trainingDays)return{...A,flags:['empty_plan']};
+ if(A.trainingDays>=7)A.flags.push('no_rest_day: 7 training days with no full rest');
+ let run=0,best=0;for(let d=0;d<7;d++){if(tr.includes(d)){run++;best=Math.max(best,run)}else run=0}if(best>=5&&A.trainingDays<7)A.flags.push('long_streak: '+best+' consecutive training days');
+ if(A.push&&A.pull&&(A.push/A.pull>1.6||A.pull/A.push>1.6))A.flags.push('push_pull_imbalance: push '+A.push+' sets vs pull '+A.pull+' sets per week');else if(A.push&&!A.pull)A.flags.push('no_pull: no pulling work');else if(A.pull&&!A.push)A.flags.push('no_push: no pushing work');
+ if(tot>=12&&A.legs/tot<0.2)A.flags.push('low_legs: legs are only '+Math.round(A.legs/tot*100)+'% of weekly sets');
+ if(tot>=12&&!A.core)A.flags.push('no_core: no direct core work');
+ for(let i=0;i<tr.length-1;i++){const a=tr[i],b=tr[i+1];if(b-a==1){const sh=[...(A['m'+a]||[])].filter(m=>A['m'+b]&&A['m'+b].has(m)&&m!='core'&&m!='cardio');if(sh.length)A.flags.push('same_muscle_back_to_back: '+sh.join('/')+' trained on consecutive days')}}
+ const wk={};tr.forEach(d=>{(plan[d]||[]).forEach(w=>{const k=nz(w.n);if(k)wk[k]=(wk[k]||0)+1})});const dup=Object.entries(wk).filter(([k,v])=>v>=4).map(([k])=>k);if(dup.length)A.flags.push('repetitive: same exercise 4+ times per week');
+ Object.entries(A.sessionSets).forEach(([d,v])=>{if(v>32)A.flags.push('too_much_volume: day '+d+' has '+v+' working sets');else if(v<5&&A.trainingDays>=3)A.flags.push('too_little_volume: day '+d+' has only '+v+' working sets')});
+ const needRest=w=>{const e=match(w);return!(e&&(e.kd=='time'||e.kd=='rnd'||/^(run_|cy_|sw_|sk_b|bx_|ma_|yg|mb)/.test(e.pt)))};const anyNoRest=tr.some(d=>(plan[d]||[]).some(w=>w.ph!='w'&&w.ph!='c'&&needRest(w)&&!(+w.rs>0)));if(anyNoRest)A.flags.push('rest_not_set: some exercises have no rest interval');
+ const anyW=tr.some(d=>(plan[d]||[]).some(w=>w.ph=='w')),anyC=tr.some(d=>(plan[d]||[]).some(w=>w.ph=='c'));if(!anyW)A.flags.push('no_warmup');if(!anyC)A.flags.push('no_cooldown');
+ const mm=Object.entries(A.setsByMuscle).map(([k,v])=>[k,Math.round(v)]);A.setsByMuscle=Object.fromEntries(mm);for(let d=0;d<7;d++)delete A['m'+d];A.sessionSets=undefined;if(A.unknown>0&&A.unknown>=(A.exercises||1)*0.4)A.flags.push('low_confidence: '+A.unknown+' of '+A.exercises+' exercises could not be classified, so balance numbers are approximate');A.flags=[...new Set(A.flags)];A.score=Math.max(0,100-A.flags.length*12);return A}
+// ===== تتبع الأداء والحمل التدريجي =====
+function insights(perf,today){const by={};(perf||[]).forEach(x=>{const k=x.id||x.n;(by[k]=by[k]||[]).push(x)});const out=[];
+ Object.values(by).forEach(a=>{a.sort((x,y)=>x.d<y.d?-1:1);if(a.length<2)return;const sc=x=>x.w>0?x.w*(1+(x.r||1)/30):(x.r||x.t||0);const last=a.slice(-3),n=a.length,l=a[n-1],pv=a[n-2];const sl=sc(l),sp=sc(pv);let st='steady',sug='';
+  if(sl>sp*1.02)st='improving';else if(sl<sp*0.9)st='dropping';
+  const span=(Date.parse(l.d)-Date.parse(last[0].d))/864e5;if(last.length==3&&span>=8&&Math.max(...last.map(sc))<=Math.min(...last.map(sc))*1.02+1e-9){st='stalled'}
+  const tr=+l.tr||0;if(st=='stalled')sug='stalled 3 sessions: deload ~10% for a week, change variation or rep range, then check sleep and food';else if(st=='dropping')sug='performance dropped: reduce volume this week and prioritise sleep/recovery';else if(tr&&l.r>=tr+2){sug=l.w>0?'top of range hit: add the smallest load step next session':'top of range hit: add a set or move to a harder variation'}else if(st=='improving')sug='keep the same plan; progress is on track';else sug='repeat and aim for one more clean rep before adding load';
+  out.push({exercise:l.n||l.id,sessions:n,last:{date:l.d,reps:l.r||undefined,kg:l.w||undefined,secs:l.t||undefined},trend:st,advice:sug})});
+ return out.slice(0,8)}
+// ===== Sports Intelligence 2.0: تعديل تفاعلي للخطة + قراءة وتحليل خطة لصقها المستخدم (دوال نقية، تعيد استخدام D و ok و mk و audit) =====
+/* مرادفات إضافية (فرنسي/لهجات) لقراءة الخطط الملصوقة؛ تضاف فوق جدول AL الموجود فقط */
+Object.assign(AL,{pompes:'pushup',pompe:'pushup',tractions:'pullup',traction:'pullup',fentes:'lunge',fente:'lunge',gainage:'plank',planche:'plank',développécouché:'bench_press',developpecouche:'bench_press',soulevédeterre:'deadlift',souleve:'deadlift',rowing:'barbell_row',tirage:'barbell_row',tiragehorizontal:'seated_row',tiragevertical:'lat_pulldown',latpulldown:'lat_pulldown',élévationslatérales:'lat_raise',elevationslaterales:'lat_raise',curlbiceps:'curl',extensiontriceps:'tri_ext',corde:'rope',cordeàsauter:'rope',course:'run_e',courseàpied:'run_e',marche:'walk',burpees:'burpee',pontdefesses:'glute_bridge',montéesurbanc:'step_up',squatssautés:'jump_squat',jumpsquat:'jump_squat',glutebridge:'glute_bridge',hipthrust:'hip_thrust',stepup:'step_up',legpress:'leg_press',calfraise:'calf_raise',mountainclimbers:'mountain',jumpingjacks:'jj',situps:'knee_raise',legraises:'leg_raise',ركض:'run_e',جريخفيف:'run_e',رفعالسمانه:'calf_raise',رفعالساقين:'leg_raise',جسرالاردف:'glute_bridge',تمارينالبطن:'russian'});
+function zPrm(prof,plan,extraLim){prof=prof||{};
+ const hasEq=Array.isArray(prof.equipment)&&prof.equipment.length&&!(prof.assumed||[]).includes('equipment');
+ const eq=eqSet(hasEq?prof.equipment:'none');
+ /* معدات غير مؤكدة: لا نفترض أقل مما تستعمله خطته فعلًا */
+ if(!hasEq)Object.values(plan||{}).forEach(l=>(l||[]).forEach(w=>{const e=match(w);if(e)for(const c of e.eq)eq.add(c)}));
+ const lim=new Set((Array.isArray(prof.limits)?prof.limits:[]).concat(extraLim||[]).filter(Boolean).map(x=>String(x).toLowerCase()));
+ const sl=(Array.isArray(prof.sport)?prof.sport:[prof.sport||'gym']).map(x=>SPORTS[String(x||'gym').toLowerCase().replace(/[\s-]+/g,'_')]||'gym');
+ return{eq,lim,age:+prof.age||0,sports:sl,lv:LV[String(prof.level||'').toLowerCase()]||1,goal:PARAM[prof.goal]?prof.goal:'general'}}
+/* بديل تمرين من قاعدة التمارين نفسها: نفس نمط الحركة والعضلة، يناسب المعدات والمستوى والقيود. لا يخترع شيئًا */
+function swap(w,plan,prof,o){o=o||{};const e=match(w);if(!e)return null;
+ const p=zPrm(prof,plan,o.limits);p.lang=o.lang=='en'||o.lang=='fr'?'en':'ar';
+ const mode=['same','easier','harder','pain'].includes(o.mode)?o.mode:'same';
+ const inDay=new Set();((plan&&plan[o.day])||[]).forEach(x=>{const y=match(x);if(y)inDay.add(y.k)});
+ const tgt=mode=='easier'||mode=='pain'?e.lv-1:mode=='harder'?e.lv+1:e.lv;
+ const cap=mode=='harder'?Math.min(3,e.lv+1):Math.min(3,Math.max(e.lv,p.lv));
+ const base=Object.values(D).filter(x=>x.k!=e.k&&!inDay.has(x.k)&&ok(x,p,cap));
+ const wc=x=>x.pt=='wu'||x.pt=='cd';
+ const sh=x=>x.mu.some(m=>e.mu.includes(m)),T=[x=>x.pt==e.pt&&x.mu[0]==e.mu[0]&&x.kd==e.kd,x=>x.pt==e.pt&&x.kd==e.kd&&sh(x),x=>x.pt==e.pt&&sh(x),x=>x.mu[0]==e.mu[0]&&x.kd==e.kd&&wc(x)==wc(e)];
+ let pool=[];
+ for(const f of T){pool=base.filter(f);if(mode=='pain')pool=pool.filter(x=>!x.st.some(t=>e.st.includes(t)));if(mode=='harder')pool=pool.filter(x=>x.lv>e.lv);if(pool.length)break}
+ if(!pool.length)return null;
+ const r=mb32(hseed(e.k+'|'+(o.variant||0)+'|'+(w.id||'')+'|'+(o.day==null?'':o.day)));
+ const key=new Map(pool.map(x=>[x,Math.abs(x.lv-tgt)+r()*0.9]));
+ pool.sort((a,b)=>key.get(a)-key.get(b));
+ const x=pool[0],pm=PARAM[p.goal],lvI=Math.max(0,Math.min(2,x.lv-1));
+ const it=mk(x,{r:'m',ph:w.ph=='w'?'w':w.ph=='c'?'c':''},p,pm,lvI,mb32(hseed(x.k+(w.id||''))),3);
+ const same=x.kd==e.kd&&x.pt==e.pt;
+ return{k:x.k,from:e.k,n:it.n,nt:it.nt,al:it.al,lv:it.lv,s:same&&+w.s>0?+w.s:it.s,r:same&&+w.r>0?+w.r:it.r,rs:same&&+w.rs>0?+w.rs:it.rs}}
+/* إضافة تمارين مرونة (تُوضع كتهدئة) بلا تكرار ما في اليوم */
+function mobility(items,prof,cnt,lang,seed){const p=zPrm(prof,{});p.lang=lang=='en'||lang=='fr'?'en':'ar';
+ const used=new Set();(items||[]).forEach(w=>{const e=match(w);if(e)used.add(e.k)});
+ const pool=Object.values(D).filter(e=>(e.pt=='mb'||e.pt=='yg')&&!used.has(e.k)&&ok(e,p,3));
+ const r=mb32(hseed('mob|'+seed+'|'+used.size)),key=new Map(pool.map(x=>[x,r()]));pool.sort((a,b)=>key.get(a)-key.get(b));
+ return pool.slice(0,Math.max(1,Math.min(3,cnt||2))).map(e=>{const it=mk(e,{r:'x',ph:'c'},p,PARAM.general,0,r,3);return{k:e.k,n:it.n,s:it.s,r:it.r,rs:it.rs,nt:it.nt,al:it.al,lv:it.lv}})}
+/* ---- قراءة خطة نصية (عربي/إنجليزي/فرنسي) ثم تحليلها بنفس المحلل ---- */
+const zN=s=>String(s||'').toLowerCase().replace(/[\u064B-\u065F\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه');
+const zDW={sunday:0,sun:0,dimanche:0,dim:0,احد:0,الاحد:0,monday:1,mon:1,lundi:1,lun:1,اثنين:1,الاثنين:1,اتنين:1,الاتنين:1,tuesday:2,tues:2,tue:2,mardi:2,ثلاثاء:2,الثلاثاء:2,wednesday:3,wed:3,mercredi:3,mer:3,اربعاء:3,الاربعاء:3,thursday:4,thurs:4,thur:4,thu:4,jeudi:4,jeu:4,خميس:4,الخميس:4,friday:5,fri:5,vendredi:5,ven:5,جمعه:5,الجمعه:5,saturday:6,sat:6,samedi:6,sam:6,سبت:6,السبت:6};
+const zDWK=Object.keys(zDW).sort((a,b)=>b.length-a.length).join('|');
+const zHD=new RegExp('^[\\s#*\\-–—•>\\d.)\\]]*(?:(?:يوم|day|jour)\\s+)?('+zDWK+')(?![a-z\\u0621-\\u064A])\\s*(?:[:：\\-–—)]\\s*)?(.*)$');
+const zDN=/^[\s#*\-–—•>]*(?:day|يوم|اليوم|jour)\s*(\d{1,2})(?!\d)\s*(?:[:：\-–—)]\s*)?(.*)$/;
+const zRS=/(?:^|[\s:\-–—)(])(?:راحه|rest|repos|off|اجازه|عطله|libre|استشفاء|recovery)(?![a-z\u0621-\u064A])/;
+const zS1=/(\d{1,2})\s*(?:[x×✕*]|sets?\s*(?:of|x|×)?|مجموع(?:ات|ه)\s*(?:من|x|×)?|s[ée]ries?\s*(?:de|x|×)?)\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?/,zS2=/(\d{1,2})\s*(?:sets?|مجموع(?:ات|ه)|s[ée]ries?)(?![a-z\u0621-\u064A])/;
+const zSG=new RegExp(zS1.source,'g');
+function zName(s){return s.replace(/@\s*[\d.]+\s*(?:kg|كغ|كجم|lb)?/g,' ').replace(/(?:rest|راحه|repos)\s*[:=]?\s*\d+\s*(?:s|sec|ث|ثانيه|min|د)?/g,' ').replace(/(?:reps?|تكرار(?:ات)?|rép\w*)(?![a-z\u0621-\u064A])/g,' ').replace(/[()\[\]]/g,' ').replace(/^[\s\-–—•*>\d.:)،,]+/,'').replace(/[\s\-–—:،,.]+$/,'').replace(/\s+/g,' ').trim()}
+function parseText(raw){const lines=zN(String(raw||'').replace(/\r/g,'')).replace(new RegExp('[;؛,،]?[ \\t]+(?=(?:'+zDWK+')(?![a-z\\u0621-\\u064A])\\s*[:：])','g'),'\n').split('\n');const plan={},seqKeys=[];let cur=null,ctx=false,count=0,assumed=0,unparsed=0,labels=0,rests=0,weekdayHdr=false;
+ const put=(k,it)=>{(plan[k]=plan[k]||[]).push(it);count++};
+ const seg=(s0,bullet)=>{const s=s0.trim();if(!s)return false;let m=zS1.exec(s),sets=0,reps=0,rest=s;
+  if(m){sets=+m[1];reps=+(m[3]||m[2]);rest=s.replace(m[0],' ')}else if((m=zS2.exec(s))){sets=+m[1];rest=s.replace(m[0],' ')}
+  const rm=/(?:rest|راحه|repos)\s*[:=]?\s*(\d{2,3})/.exec(s),nm=zName(rest);
+  if(!nm||nm.length<2||nm.length>60||!/[a-z\u0621-\u064A]/.test(nm))return false;
+  if(!sets){if(!(match({n:nm})||(ctx&&bullet&&nm.split(' ').length<=6)))return false;sets=3;assumed++}
+  const k=cur==null?1:cur;put(k,{n:nm,s:Math.min(50,sets),r:reps||0,...(rm?{rs:+rm[1]}:{}),...(m?{}:{as:1})});return true};
+ lines.forEach(l0=>{const line=zN(l0).replace(/\s+/g,' ').trim();if(!line)return;
+  const bullet=/^\s*(?:[-–—•*>]|\d{1,2}[.)])\s/.test(line);let m=zHD.exec(line),dn=null,rest=line;
+  if(m){cur=zDW[m[1]];weekdayHdr=true;ctx=true;rest=m[2].trim();plan[cur]=plan[cur]||[]}
+  else if((dn=zDN.exec(line))){const kk=100+ +dn[1];cur=kk;if(!seqKeys.includes(kk))seqKeys.push(kk);ctx=true;rest=dn[2].trim();plan[cur]=plan[cur]||[]}
+  if(m||dn){if(!rest){labels++;return}if(zRS.test(' '+rest)&&!zS1.test(rest)){rests++;return}}
+  const nS=(rest.match(zSG)||[]).length,parts=nS>=2||((m||dn)&&/[,،;؛]/.test(rest))?rest.split(/\s*[;؛،,]\s*(?=\S)/):[rest];
+  let got=0;parts.forEach(p=>{if(seg(p,bullet))got++});
+  if(!got){if(m||dn)labels++;else if(line.length>3)unparsed++}});
+ let hasDays=weekdayHdr||seqKeys.length>0,assumedWeekdays=false;
+ if(seqKeys.length&&!weekdayHdr){const ks=seqKeys.slice().sort((a,b)=>a-b),dl=DAYSET[ks.length]||[1,2,3,4,5,6,0].slice(0,ks.length),np={};ks.forEach((k,i)=>{np[dl[i]]=plan[k]||[]});Object.keys(plan).forEach(k=>delete plan[k]);Object.assign(plan,np);assumedWeekdays=true}
+ else if(seqKeys.length){seqKeys.forEach(k=>{delete plan[k]});hasDays=true}
+ return{plan,hasDays,count,assumed,unparsed,rests,assumedWeekdays}}
+const zPT={ph:'horizontal push',pv:'overhead push',rh:'horizontal pull',rv:'vertical pull',sq:'squat',hg:'hip hinge',lg:'lunge/single-leg',ar:'arm isolation',cv:'calves'},zDY=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function pasted(text){const t=String(text||'').slice(0,6000);if(t.length<30)return null;const P=parseText(t),stated=P.count-P.assumed;
+ if(P.count<3||(stated<2&&!(P.hasDays&&P.count>=4)))return null;
+ const plan=P.plan;let matched=0;const unrec=[];
+ Object.values(plan).forEach(l=>l.forEach(w=>{if(match(w))matched++;else if(unrec.length<6&&!unrec.includes(w.n))unrec.push(w.n)}));
+ const ratio=matched/P.count;let conf=ratio>=0.8&&P.assumed==0?'high':ratio>=0.5?'medium':'low';if(P.assumed>P.count/2&&conf=='high')conf='medium';
+ const au=audit(plan,{});if(au.flags&&au.flags[0]=='empty_plan')return null;
+ const weekly=P.hasDays&&Object.keys(plan).filter(k=>(plan[k]||[]).length).length>=2;
+ const absent=['no_warmup','no_cooldown','rest_not_set','low_confidence'],wk=['no_rest_day','long_streak','same_muscle_back_to_back'];
+ const flags=(au.flags||[]).filter(f=>{const k=f.split(':')[0];return!absent.includes(k)&&(weekly||!wk.includes(k))}).map(f=>f.replace(/\bday (\d)\b/,(m,d)=>P.hasDays?zDY[d]:'the session'));
+ const notListed=(au.flags||[]).map(f=>f.split(':')[0]).filter(k=>absent.slice(0,3).includes(k));
+ const dayName=k=>P.hasDays?zDY[k]:'session';const sets={},red=[];
+ Object.keys(plan).forEach(k=>{const L=plan[k]||[];let tot=0;const by={},seen={};L.forEach(w=>{tot+=+w.s||0;const e=match(w);if(!e)return;if(seen[e.k])red.push(dayName(k)+': '+w.n+' listed twice');seen[e.k]=1;if(zPT[e.pt])by[e.pt]=(by[e.pt]||0)+1});
+  if(P.hasDays)sets[dayName(k)]=tot;Object.keys(by).forEach(pt=>{if(by[pt]>=3)red.push(dayName(k)+': '+by[pt]+' '+zPT[pt]+' exercises')})});
+ const has=new Set();Object.values(plan).forEach(l=>l.forEach(w=>{const e=match(w);if(e)has.add(e.pt)}));
+ const missing=[];if(conf!='low'){if(!has.has('ph')&&!has.has('pv'))missing.push('push');if(!has.has('rh')&&!has.has('rv'))missing.push('pull');if(!has.has('sq')&&!has.has('lg'))missing.push('squat/lunge');if(!has.has('hg'))missing.push('hip hinge');if(!has.has('co'))missing.push('core');if(has.has('rh')&&!has.has('rv')&&(has.has('ph')||has.has('pv')))missing.push('vertical pull (optional)')}
+ const out={src:'pasted_text',confidence:conf,structure:{weekdaysGiven:P.hasDays&&!P.assumedWeekdays,sessions:Object.keys(plan).filter(k=>(plan[k]||[]).length).length,exercises:P.count,recognized:matched,setsNotStated:P.assumed,unparsedLines:P.unparsed}};
+ if(weekly){out.trainingDays=au.trainingDays;out.restDays=Math.max(0,7-au.trainingDays);out.setsPerDay=sets}else out.note='single session or no weekdays: weekly recovery cannot be judged';
+ out.balanceSets={push:au.push,pull:au.pull,legs:au.legs,core:au.core};out.byMuscle=au.setsByMuscle;
+ if(flags.length)out.findings=flags.slice(0,8);if(red.length)out.redundancy=red.slice(0,5);if(missing.length)out.missingPatterns=missing;if(notListed.length)out.notListed=notListed;if(unrec.length)out.unrecognized=unrec;
+ return out}
+return{D,gen,audit,insights,match,norm,SPORTS,eqSet,PARAM,est,swap,mobility,pasted,parseText}})();
+/* ===END-COACH-ENGINE=== */
+
 function cpx(e){const o={};if(!e||typeof e!='object')return o;const rs=mcl(e.rest,0,600,0);if(rs)o.rs=rs;const nt=mtx(e.note,160);if(nt)o.nt=nt;const al=mtx(e.alt,70);if(al)o.al=al;const lv=({beginner:'b',intermediate:'i',advanced:'a'})[mn(e.level)];if(lv)o.lv=lv;const p=mn(e.phase),ph=/^warm/.test(p)?'w':/^cool/.test(p)?'c':'';if(ph)o.ph=ph;return o}
 function cpm(w){const a=[];if(w.ph=='w')a.push(P('إحماء','Warm-up','Échauffement'));else if(w.ph=='c')a.push(P('تهدئة','Cool-down','Retour au calme'));if(w.lv)a.push({b:P('مبتدئ','Beginner','Débutant'),i:P('متوسط','Intermediate','Intermédiaire'),a:P('متقدم','Advanced','Avancé')}[w.lv]);return esc(a.join(' · ')||'برنامجي الخاص')}
 function exMeta(e){return(e.nt?`<p class="mu c" style="font-size:13px">${e.nt}</p>`:'')+(e.al?`<p class="mu c" style="font-size:12px">${P('بديل','Alternative','Alternative')}: ${e.al}</p>`:'')}
-const MU=['tasks','habits','hlog','wo','wmode','cplan','cgoal','wlog','wcfg','notes'],DAYK={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+const MU=['tasks','habits','hlog','wo','wmode','cplan','cgoal','cprof','wperf','wlog','wcfg','notes'],DAYK={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
 const mn=s=>String(s==null?'':s).trim().toLowerCase(),okd=s=>/^\d{4}-\d{2}-\d{2}$/.test(String(s||''))&&dk(pd(s))==s;
 const mday=v=>{const s=mn(v);if(Object.prototype.hasOwnProperty.call(DAYK,s))return DAYK[s];return/^[0-6]$/.test(s)?+s:null};
 const mcl=(v,a,b,d)=>{v=Math.floor(+v);return isFinite(v)?Math.min(b,Math.max(a,v)):d};
@@ -1604,6 +2011,9 @@ function mfH(a){const L=S.habits.filter(h=>!h.del);if(a.id){const h=L.find(x=>x.
 function mfN(a){const L=S.notes||[];if(a.id){const x=L.find(y=>y.id==a.id);if(x)return x}const n=mn(a.title||a.name);return n?(L.find(x=>mn(x.t)==n)||L.find(x=>mn(x.t).includes(n))||null):null}
 function mfW(a){const all=[];CPD.forEach(d=>((S.cplan||{})[d]||[]).forEach(w=>all.push({w,d})));if(a.id){const r=all.find(z=>z.w.id==a.id);if(r)return r}
 const n=mn(a.name||a.exercise),dd=a.day!=null?mday(a.day):null;if(!n)return null;const L=all.filter(z=>dd===null||z.d==dd);return L.find(z=>mn(z.w.n)==n)||L.find(z=>mn(z.w.n).includes(n))||null}
+const ccl=t=>{try{const p=S.cprof=S.cprof||{};p.log=(Array.isArray(p.log)?p.log:[]).concat(TODAY().slice(5)+' '+mtx(t,70)).slice(-6)}catch(e){}};
+function swapApply(w,r){w.n=r.n;if(r.nt)w.nt=r.nt;else delete w.nt;if(r.al)w.al=r.al;else delete w.al;w.lv=r.lv;w.s=r.s;w.r=r.r;if(r.rs)w.rs=r.rs;w.ek=r.k;delete w.fig}
+const mdays=v=>(v==null||mn(v)=='all')?CPD.slice():(Array.isArray(v)?v:[v]).map(mday).filter(x=>x!==null);
 function mapply(list){const out=[],hadPlan=cpAll().some(w=>String(w.n||'').trim());let touched=0;
 list.slice(0,12).forEach(a=>{if(!a||typeof a!='object')return;try{switch(String(a.op)){
 case'add_task':{const x=mtx(a.text,200);if(!x)break;const d=okd(a.date)?a.date:TODAY();(S.tasks[d]=S.tasks[d]||[]).push({id:uid(),t:x,d:false});out.push({k:'add_task',n:x});break}
@@ -1611,9 +2021,9 @@ case'complete_task':{const r=mfT(a);if(!r)break;const dn=a.done!==false;r.x.d=dn
 case'remove_task':{const r=mfT(a);if(!r)break;S.tasks[r.k]=S.tasks[r.k].filter(y=>y!==r.x);out.push({k:'del_task',n:r.x.t});break}
 case'add_habit':{const x=mtx(a.text||a.name,80);if(!x||S.habits.some(h=>!h.del&&mn(h.n)==mn(x)))break;const KM2={time:'tm',timer:'tm',minutes:'tm',counter:'ct',count:'ct'},t2=KM2[mn(a.kind||a.type)]||'ck',rm=/^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(a.time||'').trim());S.habits.push({id:uid(),n:x,i:'star',c:PAL[0],t:t2,g:t2=='tm'?mcl(a.goal,1,1440,30):t2=='ct'?mcl(a.goal,1,100000,1):1,rp:10,u:t2=='ct'?mtx(a.unit,20):'',fl:t2=='tm'&&a.link_timer!==false?1:0,from:TODAY(),df:0,off:[],rt:rm?rm[1].padStart(2,'0')+':'+rm[2]:''});if(rm)mremHint();out.push({k:'add_habit',n:x});break}
 case'log_habit':{const h=mfH(a);if(!h||h.t=='pr')break;const d=okd(a.date)?a.date:TODAY(),l=S.hlog[d]=S.hlog[d]||{};if(isC(h))l[h.id]=mcl(a.value!=null?a.value:(a.done===false?0:gl(h,d)),0,100000,0);else l[h.id]=a.done!==false;out.push({k:'log_habit',n:h.n});break}
-case'plan_add':{const d=mday(a.day),x=mtx(a.name||a.exercise,80);if(d===null||!x)break;S.cplan=S.cplan||{};(S.cplan[d]=S.cplan[d]||[]).push({id:uid(),n:x,s:mcl(a.sets,1,50,3),r:mcl(a.reps,1,1000,10),...cpx(a)});touched=1;out.push({k:'plan_add',n:x,d});break}
-case'plan_update':{const r=mfW(a);if(!r)break;const w=r.w,nn=a.new_name!=null?mtx(a.new_name,80):'';if(nn){w.n=nn;delete w.fig}if(a.sets!=null)w.s=mcl(a.sets,1,50,+w.s||3);if(a.reps!=null)w.r=mcl(a.reps,1,1000,+w.r||10);Object.assign(w,cpx(a));touched=1;out.push({k:'plan_upd',n:w.n,d:r.d});break}
-case'plan_remove':{const r=mfW(a);if(!r)break;S.cplan[r.d]=S.cplan[r.d].filter(z=>z!==r.w);out.push({k:'plan_del',n:r.w.n,d:r.d});break}
+case'plan_add':{const d=mday(a.day),x=mtx(a.name||a.exercise,80);if(d===null||!x)break;S.cplan=S.cplan||{};(S.cplan[d]=S.cplan[d]||[]).push({id:uid(),n:x,s:mcl(a.sets,1,50,3),r:mcl(a.reps,1,1000,10),...cpx(a)});touched=1;out.push({k:'plan_add',n:x,d});ccl('added '+x+' '+MDN[d]);break}
+case'plan_update':{const r=mfW(a);if(!r)break;const w=r.w,nn=a.new_name!=null?mtx(a.new_name,80):'';if(nn){w.n=nn;delete w.fig;delete w.ek}if(a.sets!=null)w.s=mcl(a.sets,1,50,+w.s||3);if(a.reps!=null)w.r=mcl(a.reps,1,1000,+w.r||10);Object.assign(w,cpx(a));touched=1;out.push({k:'plan_upd',n:w.n,d:r.d});ccl('edited '+w.n+' '+MDN[r.d]);break}
+case'plan_remove':{const r=mfW(a);if(!r)break;S.cplan[r.d]=S.cplan[r.d].filter(z=>z!==r.w);out.push({k:'plan_del',n:r.w.n,d:r.d});ccl('removed '+r.w.n+' '+MDN[r.d]);break}
 case'set_program':{const c=mn(a.mode).indexOf('cus')==0;S.wmode=c?'cus':'def';out.push({k:c?'prog_cus':'prog_def',n:''});break}
 case'log_sets':{const d=okd(a.date)?a.date:TODAY(),L=ex(d),q=mn(a.exercise||a.name),e=(a.id&&L.find(x=>x.id==a.id))||L.find(x=>x.id==a.exercise)||L.find(x=>mn(x.n)==q)||(q&&L.find(x=>mn(x.n).includes(q)));if(!e)break;const l=S.wlog[d]=S.wlog[d]||{};l[e.id]=mcl(a.sets,0,e.s,e.s);out.push({k:'log_sets',n:e.n});break}
 case'set_theme':{const f=mn(a.family),m=mn(a.mode),c=normTheme(S.theme).split('-');setTheme(/^(gold|blue|pink|red|cel|shd|aur|voi|roy|neo)$/.test(f)?f:c[0],m=='dark'||m=='light'?m:c[1]);out.push({k:'set_theme',n:''});break}
@@ -1624,8 +2034,43 @@ case'remove_habit':{const h=mfH(a);if(!h||h.t=='pr')break;arch(h);out.push({k:'d
 case'set_reminder':case'clear_reminder':{const clr=String(a.op)=='clear_reminder',tm=/^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(a.time||'').trim());if(!clr&&!tm)break;const hh=clr?'':tm[1].padStart(2,'0')+':'+tm[2],hb=mn(a.target||(a.habit?'habit':'task'))=='habit';if(hb){const h=mfH(a);if(!h||h.t=='pr')break;h.rt=hh;out.push({k:clr?'clear_rem':'set_rem',n:h.n+(hh?' '+hh:'')})}else{const r=mfT(a);if(!r)break;r.x.rt=hh;out.push({k:clr?'clear_rem':'set_rem',n:r.x.t+(hh?' '+hh:'')})}if(!clr)mremHint();break}
 case'create_program':{if(!gateNeed('pro'))break;const nw={};let cnt=0,gc=0;(Array.isArray(a.days)?a.days.slice(0,7):[]).forEach(dy=>{const d=mday(dy&&dy.day);if(d===null)return;const gl=mtx(dy.goal,120);if(gl){S.cgoal=S.cgoal||{};S.cgoal[d]=gl;gc++}
 if(!Array.isArray(dy.exercises)||!dy.exercises.length){if(dy.recovery===true&&a.replace===true)nw[d]=nw[d]||[];return}
-const L=[];dy.exercises.slice(0,20).forEach(e=>{const n=mtx(e&&e.name,70);if(!n)return;L.push({id:uid(),n:n,s:mcl(e.sets,1,20,3),r:mcl(e.reps,1,300,10),...cpx(e)})});if(L.length){nw[d]=(nw[d]||[]).concat(L);cnt+=L.length}});if(!cnt&&!gc&&!Object.keys(nw).length)break;S.cplan=S.cplan||{};Object.keys(nw).forEach(d=>{S.cplan[d]=a.replace===true?nw[d]:(S.cplan[d]||[]).concat(nw[d])});S.wmode='cus';touched=1;out.push({k:'prog_new',n:mtx(a.name,60)||String(cnt)});break}
+const L=[];dy.exercises.slice(0,20).forEach(e=>{const n=mtx(e&&e.name,70);if(!n)return;L.push({id:uid(),n:n,s:mcl(e.sets,1,20,3),r:mcl(e.reps,1,300,10),...cpx(e)})});if(L.length){nw[d]=(nw[d]||[]).concat(L);cnt+=L.length}});if(!cnt&&!gc&&!Object.keys(nw).length)break;S.cplan=S.cplan||{};Object.keys(nw).forEach(d=>{S.cplan[d]=a.replace===true?nw[d]:(S.cplan[d]||[]).concat(nw[d])});S.wmode='cus';S.cprof=Object.assign({},S.cprof||{},{prog:{src:'custom',name:mtx(a.name,60)||'',at:TODAY()}});ccl('custom program '+(mtx(a.name,40)||cnt+' ex'));touched=1;out.push({k:'prog_new',n:mtx(a.name,60)||String(cnt)});break}
+case'gen_program':{if(!gateNeed('pro'))break;const pf=S.cprof||{};const cl=(v,d)=>Array.isArray(v)?v:(v?[v]:d);
+ const dl=Array.isArray(a.dayList)?a.dayList.map(mday).filter(x=>x!==null):null;
+ const q={sport:a.sport||pf.sport||'gym',goal:a.goal||pf.goal,level:a.level||pf.level,days:a.days||pf.days||(dl&&dl.length)||3,dayList:dl&&dl.length?dl:null,minutes:a.minutes||pf.minutes,equipment:cl(a.equipment,cl(pf.equipment,['none'])),age:a.age||pf.age,limits:cl(a.limits,cl(pf.limits,[])),focus:a.focus,max:a.max,variant:a.variant,lang:LANG};
+ let g;try{g=CX.gen(q)}catch(e){g=null}if(!g)break;
+ S.cplan=S.cplan||{};S.cgoal=S.cgoal||{};for(let d=0;d<7;d++){const day=g.days[d];S.cgoal[d]=day.goal;S.cplan[d]=day.items.map(i=>({id:uid(),n:i.n,s:i.s,r:i.r,...(i.rs?{rs:i.rs}:{}),...(i.nt?{nt:i.nt}:{}),...(i.al?{al:i.al}:{}),...(i.lv?{lv:i.lv}:{}),...(i.ph?{ph:i.ph}:{}),...(i.k?{ek:i.k}:{})}))}
+ S.wmode='cus';S.cprof=Object.assign({},pf,{sport:q.sport,goal:g.meta.goal,level:['','beginner','intermediate','advanced'][g.meta.level],days:g.meta.days,minutes:g.meta.minutes,equipment:q.equipment,limits:q.limits,age:g.meta.age||pf.age||undefined,assumed:['sport','goal','level','days','minutes','equipment','limits'].filter(k=>!((k=='sport'?a.sport!=null:k=='days'?(a.days!=null||(dl&&dl.length)):a[k]!=null)||(pf[k]!=null&&!(pf.assumed||[]).includes(k)))),prog:{src:'gen',name:g.name,at:TODAY()}});ccl('generated '+g.name);touched=1;out.push({k:'prog_new',n:g.name});if(g.warns&&g.warns[0])setTimeout(()=>toast(g.warns[0]),600);break}
+case'coach_profile':{const o=Object.assign({},S.cprof||{});const A1=(v,n,f)=>(Array.isArray(v)?v:v?[v]:[]).map(x=>mtx(x,24).toLowerCase()).filter(x=>x&&(!f||f.includes(x))).slice(0,n);
+ if(a.age!=null){const v=mcl(a.age,5,100,0);if(v)o.age=v}if(['beginner','intermediate','advanced'].includes(mn(a.level)))o.level=mn(a.level);if(a.goal)o.goal=mtx(a.goal,20).toLowerCase();
+ if(a.sports||a.sport){const v=A1(a.sports||a.sport,3);if(v.length)o.sport=v}if(a.equipment){o.equipment=A1(a.equipment,12)}if(a.days!=null){const v=mcl(a.days,3,6,0);if(v)o.days=v}if(a.minutes!=null){const v=mcl(a.minutes,15,120,0);if(v)o.minutes=v}
+ if(a.limits!=null)o.limits=A1(a.limits,6,['knee','shoulder','back','wrist','elbow','ankle','neck','hip']);
+ if(Array.isArray(o.assumed)){const pv=[];if(a.sports||a.sport)pv.push('sport');['goal','level','equipment','days','minutes','limits'].forEach(k=>{if(a[k]!=null)pv.push(k)});o.assumed=o.assumed.filter(x=>!pv.includes(x));if(!o.assumed.length)delete o.assumed}
+ S.cprof=o;touched=1;break}
+case'log_perf':{const f=mfW(a),nm=mtx(a.name||(f&&f.w&&f.w.n),70);if(!nm&&!a.id)break;const r=mcl(a.reps,0,500,0),w=Math.max(0,Math.min(1000,+a.weight||0)),t=mcl(a.secs,0,3600,0);if(!r&&!t)break;const dt=/^\d{4}-\d{2}-\d{2}$/.test(String(a.date||''))?a.date:TODAY();
+ S.wperf=Array.isArray(S.wperf)?S.wperf:[];const en={d:dt,id:f&&f.w?f.w.id:undefined,n:nm,r:r||undefined,w:w||undefined,t:t||undefined,tr:mcl(a.target_reps,0,500,0)||undefined};S.wperf.push(en);if(S.wperf.length>400)S.wperf=S.wperf.slice(-400);touched=1;out.push({k:'log_sets',n:nm});break}
 case'plan_goal':{const d=mday(a.day);if(d===null)break;const g=mtx(a.goal,120);S.cgoal=S.cgoal||{};if(g)S.cgoal[d]=g;else delete S.cgoal[d];touched=1;out.push({k:'plan_upd',n:g||'',d});break}
+case'plan_swap':{const r=mfW(a);if(!r)break;const old=r.w.n,md=mn(a.mode),res=CX.swap(r.w,S.cplan,S.cprof||{},{mode:md,lang:LANG,day:r.d,variant:+a.variant||0});
+ if(!res){out.push({k:'plan_noalt',n:old,d:r.d});break}swapApply(r.w,res);touched=1;out.push({k:'plan_swap',n:old+' ← '+r.w.n,d:r.d});ccl('swapped '+old+' to '+r.w.n+' ('+md+') '+MDN[r.d]);break}
+case'plan_volume':{const up=/^(up|more|increase|raise|add)/.test(mn(a.direction||a.change)),ds=mdays(a.day);let n=0;S.cplan=S.cplan||{};
+ ds.forEach(d=>(S.cplan[d]||[]).forEach(w=>{if(!String(w.n||'').trim()||w.ph=='w'||w.ph=='c')return;const e=CX.match(w),kd=e?e.kd:'rep';
+  if(kd=='time'||kd=='hold'){const r0=+w.r||0;if(!r0)return;const r1=up?Math.min(kd=='time'?90:120,Math.round(r0*1.2/5)*5):Math.max(10,Math.round(r0*0.8/5)*5);if(up?r1>r0:r1<r0){w.r=r1;n++}}
+  else{const s0=+w.s||0;if(!s0)return;const s1=up?(s0<6?s0+1:s0):(s0>2?s0-1:s0);if(s1!==s0){w.s=s1;n++}}}));
+ if(!n)break;touched=1;out.push({k:'plan_vol',n:(up?'+':'−')+n,d:ds.length==1?ds[0]:null});ccl((up?'raised':'lowered')+' volume on '+n+' exercises '+(ds.length==1?MDN[ds[0]]:'all days'));break}
+case'plan_move':{const f=mday(a.from),t=mday(a.to);if(f===null||t===null||f==t)break;S.cplan=S.cplan||{};S.cgoal=S.cgoal||{};
+ const lf=S.cplan[f]||[],lt=S.cplan[t]||[],hf=lf.some(w=>String(w.n||'').trim()),ht=lt.some(w=>String(w.n||'').trim());if(!hf)break;
+ if(ht&&mn(a.mode)!='swap'){out.push({k:'plan_blocked',n:MDN[t],d:t});break}
+ S.cplan[t]=lf;S.cplan[f]=lt;const gf=S.cgoal[f],gt=S.cgoal[t];if(gf)S.cgoal[t]=gf;else delete S.cgoal[t];if(gt)S.cgoal[f]=gt;else delete S.cgoal[f];
+ touched=1;out.push({k:'plan_move',n:MDN[f]+' → '+MDN[t],d:t});ccl('moved '+MDN[f]+' session to '+MDN[t]);break}
+case'plan_mobility':{const cnt=mcl(a.count,1,3,2),ds=mdays(a.day);let n=0;S.cplan=S.cplan||{};
+ ds.forEach(d=>{const L=(S.cplan[d]||[]).filter(w=>String(w.n||'').trim());if(!L.some(w=>w.ph!='w'&&w.ph!='c'))return;
+  CX.mobility(L,S.cprof||{},cnt,LANG,d).forEach(i=>{S.cplan[d].push({id:uid(),n:i.n,s:i.s,r:i.r,...(i.rs?{rs:i.rs}:{}),...(i.nt?{nt:i.nt}:{}),...(i.al?{al:i.al}:{}),...(i.lv?{lv:i.lv}:{}),ph:'c',ek:i.k});n++})});
+ if(!n)break;touched=1;out.push({k:'plan_mob',n:String(n),d:ds.length==1?ds[0]:null});ccl('added '+n+' mobility drills '+(ds.length==1?MDN[ds[0]]:'to training days'));break}
+case'plan_equipment':{const ev=(Array.isArray(a.equipment)?a.equipment:[a.equipment]).map(x=>mtx(x,24).toLowerCase()).filter(Boolean).slice(0,12);if(!ev.length)break;
+ const pf=Object.assign({},S.cprof||{});pf.equipment=ev;if(Array.isArray(pf.assumed)){pf.assumed=pf.assumed.filter(x=>x!='equipment');if(!pf.assumed.length)delete pf.assumed}S.cprof=pf;
+ const set=CX.eqSet(ev);let n=0;const bad=[];S.cplan=S.cplan||{};
+ CPD.forEach(d=>(S.cplan[d]||[]).forEach(w=>{const e=CX.match(w);if(!e||[...e.eq].every(c=>set.has(c)))return;const res=CX.swap(w,S.cplan,pf,{mode:'same',lang:LANG,day:d});if(!res){bad.push(w.n);return}swapApply(w,res);n++}));
+ touched=1;out.push({k:'plan_equip',n:ev.join(', ')+(n?' · '+n:'')});bad.slice(0,6).forEach(x=>out.push({k:'plan_noalt',n:x}));ccl('equipment set to '+ev.join('/')+', adapted '+n+(bad.length?', no alternative for '+bad.length:''));break}
 case'update_note':{const x=mfN(a);if(!x)break;let ch=0;if(a.new_title!=null){x.t=mtx(a.new_title,80);ch=1}if(a.new_text!=null){x.c=String(a.new_text).slice(0,6000);ch=1}else if(a.append!=null&&String(a.append).trim()){x.c=((x.c?x.c+'\n':'')+String(a.append).slice(0,2000)).slice(0,6000);ch=1}if(!ch)break;x.u=Date.now();out.push({k:'upd_note',n:x.t||mtx(x.c,40)});break}
 case'remove_note':{const x=mfN(a);if(!x)break;S.notes=S.notes.filter(y=>y!==x);out.push({k:'del_note',n:x.t||mtx(x.c,40)});break}
 case'remember':{const x=mtx(a.text,140);if(!x)break;const mo=moon();mo.mem=mo.mem||[];if(!mo.mem.some(y=>mn(y)==mn(x))){mo.mem.push(x);while(mo.mem.length>40)mo.mem.shift()}out.push({k:'remember',n:''});break}
@@ -1733,7 +2178,8 @@ try{const o=JSON.parse(j);MU.forEach(k=>{if(o[k]!==undefined)S[k]=o[k]});a.forEa
 /* Adaptive precision profile: harder questions get deeper reasoning, lower temperature, bigger output budget */
 const MG=/إعراب|اعرب|أعرب|نحو|النحو|صرف|الصرف|تصريف|بلاغ|استعار|كناي|تشبيه|جزم|الفاعل|المفعول|مبتدأ|خبر|تمييز|الممنوع من الصرف|لا النافية|كاد وأخواتها|نعم وبئس|وزن|مشتق|الجذر|حروف الزيادة|grammar|syntax|parse|conjugat|morpholog|grammaire|conjugu|syntaxe/i,
 MR=/\d\s*[-+*\/^=×÷]\s*\d|معادلة|برهن|أثبت|احسب|حساب|مشتق|تكامل|احتمال|قيمة|solve|prove|equation|integral|derivative|probability|calcul|résou|démontr|équation|bug|debug|stack ?trace|regex|algorithm|code|برمج|كود|خوارزمية|سعرة|kcal|macro/i;
-const MPROG=/(?:برنامج|جدول|خطة|خطّة|روتين|program|routine|workout plan|training plan|schedule|programme|plan d.entra)/i,mprof=t=>({g:1,effort:'low',temp:0.3,max:MPROG.test(String(t||''))?3000:1100});
+const MPROG=/(?:برنامج|جدول|خطة|خطّة|روتين|program|routine|workout plan|training plan|schedule|programme|plan d.entra)/i,MANA=/(?:حلل|تحليل|قارن|مقارنة|الفرق بين|لماذا اخترت|ليش اخترت|اشرح لي|analy[sz]e|compare|comparison|versus|\bvs\b|why did you (?:pick|choose|select)|explain why|pourquoi)/i,MSPT=/(?:تمرين|تمارين|رياض|جيم|عضل|كمال اجسام|كاليس|workout|exercise|gym|sport|training|calisthenics|bodybuilding|muscle|entra[iî]nement|musculation)/i,
+mprof=t=>{t=String(t||'');const an=MANA.test(t)&&MSPT.test(t);return{g:1,effort:an?'medium':'low',temp:0.3,max:MPROG.test(t)?3000:an?1500:1100}};
 /* ---- Local theme command: the app applies it itself, never trusting the model to do it ---- */
 const MTN=s=>String(s||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه'),
 MB='(?:^|[^a-z\\u0621-\\u064A])(?:ال|لل|بال|وال|ل|ب|و)?',
@@ -1773,13 +2219,13 @@ if(!mtm(moon().ss.find(x=>x.id==moon().cur))){const tc=mtheme(txt);if(tc){mlocal
 if(isOff()){offAlert();return}
 if(!mgate())return;const mo=moon();let ss=mo.ss.find(x=>x.id==mo.cur);if(!ss){ss={id:uid(),t:txt.replace(/\s+/g,' ').slice(0,42),u:Date.now(),m:[],sum:'',md:mo.mode||''};mo.ss.unshift(ss);mo.cur=ss.id}
 ss.m=Array.isArray(ss.m)?ss.m.filter(x=>x&&typeof x=='object'):[];ss.m.forEach(x=>{if(typeof x.c!='string')x.c=x.c==null?'':String(x.c)});if(typeof ss.sum!='string')ss.sum='';ss.m.push({r:'u',c:txt});const am={r:'a',c:'',p:1};ss.m.push(am);ss.u=Date.now();MD='';MS.busy=1;MS.ac=new AbortController();MS.sc=1;render();
-const pf=mprof(txt);try{const go=lean=>mapi({system:lean&&!mtm(ss)?SYS+'\n\n[APP CONTEXT]\n'+mctx():msys(ss),messages:lean?[{role:'user',content:String(txt).slice(0,4000)}]:mhist(ss),search:mo.web!==0&&!mtm(ss)&&MFACT.test(txt),tutor:mtm(ss)||undefined,effort:pf.effort,temp:pf.temp,max:mcap(pf.max,ss)},t=>{am.c=t;mdom(am)},MS.ac);let raw;try{raw=await go(0)}catch(e){if(e.name=='AbortError'||!e.friendly||e.busy||e.noretry)throw e;raw=await go(1)}
+const pf=mprof(txt);let pa=null;try{pa=CX.pasted(txt)}catch(e){}if(pa){ss.pa=pa;ss.m[ss.m.length-2].pp=1;pf.effort='medium';pf.max=Math.max(pf.max,1500)}MX.paste=ss.pa&&ss.m.slice(-6).some(x=>x&&x.pp)?ss.pa:null;try{const go=lean=>mapi({system:lean&&!mtm(ss)?SYS+'\n\n[APP CONTEXT]\n'+mctx():msys(ss),messages:lean?[{role:'user',content:String(txt).slice(0,4000)}]:mhist(ss),search:mo.web!==0&&!mtm(ss)&&MFACT.test(txt),tutor:mtm(ss)||undefined,effort:pf.effort,temp:pf.temp,max:mcap(pf.max,ss)},t=>{am.c=t;mdom(am)},MS.ac);let raw;try{raw=await go(0)}catch(e){if(e.name=='AbortError'||!e.friendly||e.busy||e.noretry)throw e;raw=await go(1)}
 let acts=mparse(raw);am.c=mstrip(raw);
 if(!mtm(ss)&&!(acts&&acts.length)&&MACT.test(txt)){try{const h=mhist(ss);if(h.length&&h[h.length-1].role=='user'){h[h.length-1]={role:'user',content:h[h.length-1].content+'\n\n[SYSTEM] Your previous reply had no valid <moon_actions> block. Output ONLY the block (a valid JSON array) for the app changes I asked for, nothing else. If I asked for no app change, output <moon_actions>[]</moon_actions>.'};const rr=await mapi({system:msys(ss),messages:h,effort:'low',temp:0,max:500},null,MS.ac),a2=mparse(rr);if(a2&&a2.length)acts=a2}}catch(e){if(e.name=='AbortError')throw e}}
 if(acts&&acts.length){const snap=msnap(),out=mapply(acts);if(out.length){am.acts=out;am.k=uid();MS.undo=MS.undo||{};MS.undo[am.k]=snap;MS.ul=MS.ul||[];MS.ul.push(am.k);while(MS.ul.length>5)delete MS.undo[MS.ul.shift()];save();toast('تم تحديث بياناتك داخل التطبيق')}}
 if(!mtm(ss)&&MACT.test(txt)&&!am.acts&&MDONE.test(am.c||''))am.c+='\n\n'+P('⚠️ لم أستطع تنفيذ التغيير داخل التطبيق. جرّب: «أضف مهمة …» أو «أضف عادة …».','⚠️ I could not apply that change in the app. Try: "add task …" or "add habit …".','⚠️ Je n\'ai pas pu appliquer ce changement. Essaie : « ajoute une tâche … ».');if(!am.c&&!am.acts)am.err=X('لم يصل أي رد. حاول مرة أخرى.')}
 catch(e){if(e.name=='AbortError'){am.c=mstrip(am.c);if(!am.c)ss.m.pop()}else{const nt=e.offline||e.conn||e.message=='Failed to fetch'||e.name=='TypeError';am.err=nt?(isOff()||e.offline?OFFMSG():P('تعذّر الاتصال بالخدمة. تحقق من الإنترنت ثم أعد المحاولة.','Could not reach the service. Check your internet and retry.','Service injoignable. Vérifie internet puis réessaie.')):(e.friendly?e.message:X('حدث خطأ مؤقت. حاول مرة أخرى.'));if(nt)am.eo=1;if(e.offline)netSync()}}
-if(!am.err&&am.c){mcharge(txt,am.c,mtm(ss));if(userPlan()=='free'&&!mtm(ss)&&mrem(0)<=0){let n=0;const chk=()=>qSync().then(q=>{if(q&&q.plan=='free'&&q.resetAt){if(view=='moon')render()}else if(++n<4)setTimeout(chk,1500)});setTimeout(chk,800)}}delete am.p;MS.busy=0;MS.ac=null;ss.u=Date.now();mtrim();save();if(view=='moon')render();if(!am.err)msum(ss)}
+MX.paste=null;if(!am.err&&am.c){mcharge(txt,am.c,mtm(ss));if(userPlan()=='free'&&!mtm(ss)&&mrem(0)<=0){let n=0;const chk=()=>qSync().then(q=>{if(q&&q.plan=='free'&&q.resetAt){if(view=='moon')render()}else if(++n<4)setTimeout(chk,1500)});setTimeout(chk,800)}}delete am.p;MS.busy=0;MS.ac=null;ss.u=Date.now();mtrim();save();if(view=='moon')render();if(!am.err)msum(ss)}
 Object.assign(A,{mlist:()=>{M={k:'ms'};mrender()},
 mweb:()=>{const mo=moon();mo.web=mo.web===0?1:0;save();mrender()},
 fgen:d=>genFig(d.id),
