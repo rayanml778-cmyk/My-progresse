@@ -16,7 +16,7 @@
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
 const { verify: verifyPlan } = require('./_plan');
-const { verifyIdToken, saReady, usage, remaining, cost, charge } = require('./_fb');
+const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
@@ -111,7 +111,7 @@ const MSG = {
   conf: 'الخدمة غير مهيّأة حاليًا.',
   err: 'حدث خطأ مؤقت. حاول مرة أخرى.',
   plan: 'هذه الميزة متاحة في بريميوم وبرو.',
-  quota: 'انتهت حصتك اليومية.',
+  quota: 'انتهت حصتك المجانية.',
   auth: 'سجّل الدخول أولًا.',
 };
 function send(res, code, obj) {
@@ -328,8 +328,8 @@ async function handle(req, res) {
   // الرصيد من جهة الخادم (Firestore): لا يتأثر بمسح المتصفح أو بتعديل الواجهة
   let U = null;
   if (uid && saReady()) {
-    U = await usage(uid, pinfo ? pinfo.i : 0);
-    if (U && remaining(U, plan, pinfo && pinfo.k, tutor) <= 0) return fail(res, 429, 'quota');
+    U = await usage(uid, pinfo ? pinfo.i : 0, plan);
+    if (U && remaining(U, plan, pinfo && pinfo.k, tutor) <= 0) return send(res, 429, { error: MSG.quota, code: 'quota', quota: quotaView(U, plan) }); // يحمل وقت الخادم وموعد التجديد للعدّاد
   }
 
   const valid = [];
