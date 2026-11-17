@@ -88,7 +88,7 @@ function boot(){gate(`<div class="card"><h2>🔐 تفعيل صلاحية الم�
  <button class="btn" id="o3" style="width:100%;margin-top:8px">خروج</button></div>`);
  $('#o3').onclick=()=>auth.signOut();
  $('#bs').onclick=async()=>{const v=$('#sec').value.trim();if(!v)return;$('#bs').disabled=true;
-  try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){const w=e.j&&e.j.why;toast((w&&BW[w])||(e.status===429?ERR.slow:'تعذّر المنح: تحقق من ADMIN_SECRET')+(e.j&&e.j.detail&&e.j.detail!=='unknown'?' ['+e.j.detail+']':''),7000);$('#bs').disabled=false}$('#sec').value=''}}
+  try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){const w=e.j&&e.j.why;toast((w&&BW[w])||(e.status===429?ERR.slow:'تعذّر المنح (HTTP '+(e.status||'؟')+(e.j&&e.j.code?' / '+e.j.code:'')+')')+(e.j&&e.j.detail&&e.j.detail!=='unknown'?' ['+e.j.detail+']':''),7000);$('#bs').disabled=false}$('#sec').value=''}}
 async function check(){try{await raw('whoami');$('#gate').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=OWNER;go(tab)}
  catch(e){if(e.status===403&&e.j&&e.j.need==='claim')boot();else if(e.status===403)denied();else gate(`<div class="card"><h2>تعذّر الاتصال</h2><p class="mu">${h(ERR[e.message]||'حاول مرة أخرى')}</p><button class="btn p" id="rt">إعادة المحاولة</button></div>`),$('#rt')&&($('#rt').onclick=check)}}
 auth.onAuthStateChanged(u=>{if(!u)return login();if(String(u.email).toLowerCase()!==OWNER){return denied()}check()});
