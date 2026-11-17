@@ -30,7 +30,7 @@ const DEFAULT_TOKENS = num(process.env.GROQ_DEFAULT_TOKENS, 1024, 128, 4096);
 const MAX_TOKENS = num(process.env.GROQ_MAX_TOKENS, 3072, 256, 8192);
 const MAX_USER_CONTENT = 12000;
 const MAX_ASSISTANT_CONTENT = 3000;
-const MAX_SYSTEM = 40000;
+const MAX_SYSTEM = 64000;   // البرومبت + سياق المدرب الرياضي + تحليل الخطة الملصوقة قد يتجاوز 48000
 const RATE_LIMIT = 40;
 const RATE_WINDOW = 60 * 1000;
 
