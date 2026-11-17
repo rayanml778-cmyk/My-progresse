@@ -40,6 +40,7 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return;       // Firebase والخطوط وغيرها
   if (url.pathname.startsWith('/__/')) return;           // مسارات مصادقة Firebase Hosting
   if (url.pathname.startsWith('/api/')) return;          // الخادم: لا كاش أبدًا
+  if (url.pathname.indexOf('dev-panel') >= 0) return;    // لوحة المطوّر: دائمًا من الشبكة، لا كاش ولا وضع بلا اتصال
   e.respondWith((async () => {
     const cached = await caches.match(req, { ignoreSearch: true });
     try {

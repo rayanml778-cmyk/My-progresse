@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#080e1e">
+<title>MY PROGRESS · لوحة المطوّر</title>
+<style>
+:root{--bg:#04070f;--c1:#0b1226;--c2:#111b36;--ln:rgba(255,255,255,.09);--tx:#e8eefc;--mu:#8d9bbd;--ac:#2f74f5;--ok:#14b8a6;--dg:#e5533d;--wn:#e8b23a;color-scheme:dark;box-sizing:border-box}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 80% -10%,#14234d 0,transparent 60%),var(--bg);color:var(--tx);font:15px/1.55 "IBM Plex Sans Arabic","Cairo",system-ui,-apple-system,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+.hide{display:none!important}.mu{color:var(--mu)}.ltr{direction:ltr;unicode-bidi:plaintext;text-align:start}
+.wrap{max-width:1080px;margin:0 auto;padding:14px 14px 96px}
+.top{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:6px 0 12px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}.brand i{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--ac),var(--ok));display:grid;place-items:center;font-style:normal}
+.brand small{display:block;font-weight:500;color:var(--mu);font-size:11.5px;margin-top:-2px}
+.card{background:linear-gradient(180deg,var(--c2),var(--c1));border:1px solid var(--ln);border-radius:18px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 10px;font-size:17px}h3{margin:0 0 8px;font-size:15px}
+.btn{height:42px;padding:0 16px;border-radius:12px;border:1px solid var(--ln);background:rgba(255,255,255,.06);cursor:pointer;font-weight:700;white-space:nowrap}
+.btn:hover{background:rgba(255,255,255,.1)}.btn.p{background:linear-gradient(135deg,var(--ac),#5a8cf7);border:0;color:#fff}.btn.g{background:var(--ok);border:0;color:#04201c}.btn.d{background:rgba(229,83,61,.14);border-color:rgba(229,83,61,.45);color:#ff8f7d}.btn.s{height:34px;padding:0 12px;font-size:13px;border-radius:10px}.btn[disabled]{opacity:.55;cursor:default}
+input,select,textarea{width:100%;height:44px;border-radius:12px;border:1px solid var(--ln);background:rgba(255,255,255,.05);padding:0 12px;outline:0}
+textarea{height:auto;min-height:110px;padding:10px 12px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:var(--ac)}
+select option{background:#0b1226}
+label{display:block;font-size:12.5px;color:var(--mu);margin:0 0 4px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.fld{margin-bottom:10px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{flex:1}
+.stat{background:rgba(255,255,255,.04);border:1px solid var(--ln);border-radius:14px;padding:12px}.stat b{display:block;font-size:24px;line-height:1.2}.stat span{font-size:12.5px;color:var(--mu)}
+.tabs{display:flex;gap:6px;position:fixed;bottom:0;inset-inline:0;z-index:20;background:rgba(8,14,30,.92);backdrop-filter:blur(14px);border-top:1px solid var(--ln);padding:8px 8px calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
+.tabs button{flex:1;border:0;background:none;padding:7px 2px;border-radius:12px;color:var(--mu);font-size:11.5px;font-weight:700;cursor:pointer;display:grid;gap:2px;justify-items:center}.tabs button em{font-style:normal;font-size:19px}.tabs button.on{color:#fff;background:rgba(47,116,245,.22)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}.chips button{flex:none;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--ln);background:none;color:var(--mu);cursor:pointer;font-weight:700;font-size:13px}.chips button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.it{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:11px 0;border-top:1px solid var(--ln)}.it:first-child{border-top:0}
+.code{font:700 15px/1.3 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.5px;direction:ltr;display:inline-block;background:rgba(255,255,255,.06);border-radius:9px;padding:4px 9px;user-select:all}
+.bd{display:inline-block;font-size:11.5px;font-weight:800;border-radius:99px;padding:2px 9px;border:1px solid var(--ln)}.bd.new,.bd.approved,.bd.act{background:rgba(20,184,166,.15);color:#5eead4;border-color:rgba(20,184,166,.4)}.bd.used{background:rgba(47,116,245,.16);color:#8fb4ff;border-color:rgba(47,116,245,.4)}.bd.pending{background:rgba(232,178,58,.15);color:#f5cf76;border-color:rgba(232,178,58,.4)}.bd.revoked,.bd.rejected,.bd.expired{background:rgba(229,83,61,.13);color:#ff9b8b;border-color:rgba(229,83,61,.4)}
+.bars{display:flex;align-items:flex-end;gap:5px;height:90px;margin-top:6px}.bars i{flex:1;background:linear-gradient(180deg,var(--ac),rgba(47,116,245,.3));border-radius:5px 5px 2px 2px;min-height:3px}
+.out{background:rgba(0,0,0,.3);border:1px dashed rgba(20,184,166,.5);border-radius:14px;padding:10px;margin-top:10px}.out .code{margin:3px 0}
+#toast{position:fixed;inset-inline:0;bottom:88px;margin:auto;width:max-content;max-width:90vw;background:#e8eefc;color:#0b1226;padding:10px 18px;border-radius:99px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;z-index:60}#toast.on{opacity:1}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:50;display:grid;place-items:center;padding:14px}.ov img{max-width:100%;max-height:80vh;border-radius:12px;background:#fff}
+.gate{max-width:420px;margin:12vh auto 0;padding:0 14px}
+@media(min-width:820px){.tabs{position:sticky;top:0;bottom:auto;inset-inline:auto;border:1px solid var(--ln);border-radius:16px;margin-bottom:14px;padding:6px;justify-content:flex-start}.tabs button{flex:none;grid-auto-flow:column;padding:9px 18px;font-size:14px}.wrap{padding-bottom:30px}#toast{bottom:24px}}
+@media(max-width:560px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="toast" role="status"></div>
+<div id="gate" class="gate hide"></div>
+<div id="app" class="wrap hide">
+  <div class="top"><div class="brand"><i>🛡️</i><div>MY PROGRESS<small>لوحة المطوّر · <span class="ltr" id="who"></span></small></div></div>
+    <div class="row"><button class="btn s" id="rf">تحديث</button><button class="btn s d" id="lo">خروج</button></div></div>
+  <nav class="tabs" id="tabs">
+    <button data-t="ov"><em>📊</em>نظرة عامة</button><button data-t="cd"><em>🎟️</em>الأكواد</button><button data-t="us"><em>👥</em>المستخدمون</button><button data-t="py"><em>🏦</em>الطلبات<b id="pb"></b></button><button data-t="st"><em>⚙️</em>الإعدادات</button>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script>
+const OWNER='rayanml778@gmail.com';
+firebase.initializeApp({apiKey:"AIzaSyDuR-AZ5hPan6Wk5Riw34C0G3eJy3UFnio",authDomain:/\.(web\.app|firebaseapp\.com)$/.test(location.hostname)?location.hostname:"myprogress-6b9d9.firebaseapp.com",projectId:"myprogress-6b9d9",appId:"1:683567818896:web:d1e8cd74eeaddf03689015"});
+const auth=firebase.auth(),$=s=>document.querySelector(s);
+const h=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PL={premium:'بريميوم',pro:'برو'},PK={w:'أسبوعي',m:'شهري'},ST={new:'جديد',used:'مستخدم',revoked:'ملغى',expired:'منتهي',pending:'قيد المراجعة',approved:'مقبول',rejected:'مرفوض'};
+const dt=ms=>ms?new Date(ms).toLocaleString('ar',{dateStyle:'medium',timeStyle:'short'}):'—',dd=ms=>ms?new Date(ms).toLocaleDateString('ar',{dateStyle:'medium'}):'—',usd=c=>'$'+((+c||0)/100).toFixed(2);
+const ERR={forbidden:'غير مصرّح',slow:'محاولات كثيرة، انتظر قليلًا',conf:'الخادم غير مهيّأ (FIREBASE_SA / PLAN_SECRET)',bad:'بيانات غير صالحة',none:'غير موجود',done:'تمت معالجة هذا الطلب سابقًا',busy:'الطلب قيد المعالجة',err:'خطأ في الخادم'};
+let tab='ov',T=0;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(T);T=setTimeout(()=>t.classList.remove('on'),2600)}
+async function raw(action,data,hdr){const u=auth.currentUser;if(!u)throw Object.assign(new Error('auth'),{status:401,j:{}});
+  const r=await fetch('/api/admin',{method:'POST',headers:Object.assign({'content-type':'application/json',authorization:'Bearer '+await u.getIdToken()},hdr||{}),body:JSON.stringify(Object.assign({action},data||{}))});
+  let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw Object.assign(new Error(j.code||'err'),{status:r.status,j});return j}
+async function api(a,d,hdr){try{return await raw(a,d,hdr)}catch(e){toast(ERR[e.message]||'تعذّر تنفيذ العملية');throw e}}
+async function copy(t){try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(x){}a.remove()}toast('تم النسخ ✓')}
+const gate=(html)=>{$('#app').classList.add('hide');const g=$('#gate');g.classList.remove('hide');g.innerHTML=html};
+
+// ---------- الدخول ----------
+function login(msg){gate(`<div class="card"><div class="brand" style="margin-bottom:12px"><i>🛡️</i><div>لوحة المطوّر<small>للمالك فقط</small></div></div>
+ <div class="fld"><label>البريد الإلكتروني</label><input id="em" type="email" autocomplete="username" class="ltr" value="${OWNER}"></div>
+ <div class="fld"><label>كلمة المرور</label><input id="pw" type="password" autocomplete="current-password" class="ltr"></div>
+ <button class="btn p" id="go" style="width:100%">دخول</button><p class="mu" id="lm" style="margin:10px 0 0">${h(msg||'')}</p></div>`);
+ const go=async()=>{$('#go').disabled=true;try{await auth.signInWithEmailAndPassword($('#em').value.trim(),$('#pw').value)}catch(e){$('#lm').textContent='بيانات الدخول غير صحيحة';$('#go').disabled=false}};
+ $('#go').onclick=go;$('#pw').onkeydown=e=>{if(e.key=='Enter')go()}}
+function denied(){gate(`<div class="card"><h2>⛔ غير مصرّح</h2><p class="mu">هذه اللوحة لمالك المشروع فقط.</p><button class="btn" id="o2">تسجيل الخروج</button></div>`);$('#o2').onclick=()=>auth.signOut()}
+function boot(){gate(`<div class="card"><h2>🔐 تفعيل صلاحية المالك (مرة واحدة)</h2><p class="mu">حسابك هو المالك لكن لم تُمنح له صلاحية الإدارة بعد. أدخل ADMIN_SECRET (المحفوظ في Vercel). يُرسل للخادم فقط ولا يُخزَّن في المتصفح.</p>
+ <div class="fld"><input id="sec" type="password" class="ltr" autocomplete="off" placeholder="ADMIN_SECRET"></div><button class="btn p" id="bs" style="width:100%">منح الصلاحية</button>
+ <button class="btn" id="o3" style="width:100%;margin-top:8px">خروج</button></div>`);
+ $('#o3').onclick=()=>auth.signOut();
+ $('#bs').onclick=async()=>{const v=$('#sec').value.trim();if(!v)return;$('#bs').disabled=true;
+  try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){toast('تعذّر المنح: تحقق من ADMIN_SECRET');$('#bs').disabled=false}$('#sec').value=''}}
+async function check(){try{await raw('whoami');$('#gate').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=OWNER;go(tab)}
+ catch(e){if(e.status===403&&e.j&&e.j.need==='claim')boot();else if(e.status===403)denied();else gate(`<div class="card"><h2>تعذّر الاتصال</h2><p class="mu">${h(ERR[e.message]||'حاول مرة أخرى')}</p><button class="btn p" id="rt">إعادة المحاولة</button></div>`),$('#rt')&&($('#rt').onclick=check)}}
+auth.onAuthStateChanged(u=>{if(!u)return login();if(String(u.email).toLowerCase()!==OWNER){return denied()}check()});
+
+// ---------- التبويبات ----------
+$('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};$('#rf').onclick=()=>go(tab);$('#lo').onclick=()=>auth.signOut();
+function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));$('#main').innerHTML='<p class="mu">جارٍ التحميل…</p>';({ov,cd,us,py,st})[t]().catch(()=>{$('#main').innerHTML='<p class="mu">تعذّر التحميل. اضغط تحديث.</p>'});window.scrollTo(0,0)}
+const stat=(n,l)=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+
+async function ov(){const s=await api('stats'),u=s.users,b=s.subs,c=s.codes,p=s.payments,mx=Math.max(1,...u.signups14);
+ $('#pb').textContent=p.pending?' ('+p.pending+')':'';
+ $('#main').innerHTML=`<div class="card"><h3>المستخدمون</h3><div class="g4">${stat(u.total,'إجمالي الحسابات')}${stat(u.new7,'جدد آخر 7 أيام')}${stat(u.new30,'جدد آخر 30 يومًا')}${stat(u.active7,'نشطون آخر 7 أيام')}</div>
+ <p class="mu" style="margin:10px 0 0">تسجيلات آخر 14 يومًا</p><div class="bars">${u.signups14.map(n=>`<i title="${n}" style="height:${Math.round(n/mx*100)}%"></i>`).join('')}</div></div>
+ <div class="card"><h3>الاشتراكات</h3><div class="g4">${stat(b.premium,'بريميوم نشط')}${stat(b.pro,'برو نشط')}${stat(b.expired,'منتهية')}${stat(b.revoked,'ملغاة')}</div></div>
+ <div class="card"><h3>أكواد التفعيل</h3><div class="g4">${stat(c.total,'الإجمالي')}${stat(c.new,'متاحة')}${stat(c.used,'مستخدمة')}${stat(c.revoked+c.expired,'ملغاة/منتهية')}</div></div>
+ <div class="card"><h3>المدفوعات (التحويل البنكي)</h3><div class="g4">${stat(p.pending,'قيد المراجعة')}${stat(p.approved,'مقبولة')}${stat(p.rejected,'مرفوضة')}${stat(usd(p.revenueCents),'قيمة المقبول')}</div>
+ <p class="mu" style="margin:8px 0 0;font-size:12.5px">القيمة بحسب قائمة الأسعار بالدولار. آخر 30 يومًا: ${usd(p.revenue30Cents)}.${s.partial?' (الأعداد جزئية: حسابات كثيرة)':''}</p></div>`}
+
+let cf='all';
+async function cd(){const r=await api('codes'),L=r.codes,flt=x=>cf=='all'||x.st==cf;
+ $('#main').innerHTML=`<div class="card"><h2>إنشاء أكواد تفعيل</h2>
+ <div class="g3"><div class="fld"><label>الباقة</label><select id="mp"><option value="premium">بريميوم</option><option value="pro">برو</option></select></div>
+ <div class="fld"><label>الفترة</label><select id="mk"><option value="week">أسبوعي</option><option value="month" selected>شهري</option></select></div>
+ <div class="fld"><label>العدد (1–100)</label><input id="mc" type="number" min="1" max="100" value="1" inputmode="numeric"></div></div>
+ <div class="g3"><div class="fld"><label>مدة الاشتراك بالأيام</label><input id="md" type="number" min="1" max="366" placeholder="تلقائي (7 / 30)" inputmode="numeric"></div>
+ <div class="fld"><label>صلاحية الكود (أيام لاستخدامه)</label><input id="mv" type="number" min="1" max="365" value="30" inputmode="numeric"></div>
+ <div class="fld"><label>ملاحظة</label><input id="mn" maxlength="60" placeholder="اختياري"></div></div>
+ <button class="btn p" id="mg">إنشاء</button><div id="mo"></div></div>
+ <div class="card"><div class="chips" id="cc">${['all','new','used','revoked','expired'].map(k=>`<button data-k="${k}" class="${cf==k?'on':''}">${k=='all'?'الكل':ST[k]} (${k=='all'?L.length:L.filter(x=>x.st==k).length})</button>`).join('')}</div>
+ <div>${L.filter(flt).map(x=>`<div class="it"><div><span class="code">${x.code?h(x.code):'•••••-•••••-•••••-'+x.id.slice(0,5).toUpperCase()}</span><div class="mu" style="font-size:12.5px;margin-top:4px"><span class="bd ${x.st}">${ST[x.st]||x.st}</span> ${PL[x.p]||x.p} · ${PK[x.k]||''} ${x.days} يوم · صالح حتى ${dd(x.xp)}${x.note?' · '+h(x.note):''}${x.user?'<br>استُخدم بواسطة <span class="ltr">'+h(x.user.email||x.user.uid)+'</span> في '+dt(x.at):''}</div></div>
+ <div class="row">${x.code?`<button class="btn s" data-cp="${h(x.code)}">نسخ</button>`:''}${x.st=='new'||x.st=='used'?`<button class="btn s d" data-rv="${x.id}" data-used="${x.st=='used'?1:''}">${x.st=='used'?'إلغاء + إلغاء الاشتراك':'إلغاء'}</button>`:''}</div></div>`).join('')||'<p class="mu">لا توجد أكواد.</p>'}</div></div>`;
+ $('#mg').onclick=async e=>{const b=e.target;b.disabled=true;try{const o=await api('mint',{plan:$('#mp').value,period:$('#mk').value,count:+$('#mc').value||1,days:+$('#md').value||undefined,valid_days:+$('#mv').value||30,note:$('#mn').value});
+  $('#mo').innerHTML=`<div class="out"><div class="row"><b>تم إنشاء ${o.codes.length} كود (${PL[o.plan]} · ${o.days} يوم)</b><span class="sp"></span><button class="btn s" id="ca">نسخ الكل</button></div>${o.codes.map(c=>`<div class="row"><span class="code">${h(c)}</span><button class="btn s" data-cp="${h(c)}">نسخ</button></div>`).join('')}</div>`;
+  $('#ca').onclick=()=>copy(o.codes.join('\n'));cd.reload=1;}catch(x){}b.disabled=false};
+ $('#cc').onclick=e=>{const b=e.target.closest('button');if(b){cf=b.dataset.k;cd()}};
+ $('#main').onclick=async e=>{const c=e.target.closest('[data-cp]'),v=e.target.closest('[data-rv]');if(c)return copy(c.dataset.cp);
+  if(v){if(!confirm(v.dataset.used?'سيُبطل الكود ويُلغى اشتراك المستخدم الناتج عنه. متابعة؟':'إبطال هذا الكود؟'))return;try{const o=await api('revoke',{cid:v.dataset.rv});toast(o.revokedSubscription?'أُلغي الكود والاشتراك':'أُلغي الكود ✓');cd()}catch(x){}}}}
+
+let uq='';
+async function us(){const r=await api('users',{q:uq});
+ const row=x=>`<div class="it"><div><b class="ltr">${h(x.email||x.uid)}</b>${x.owner?' <span class="bd used">المالك</span>':''}<div class="mu" style="font-size:12.5px;margin-top:3px">${x.plan?`<span class="bd act">${PL[x.plan]}</span> حتى ${dd(x.exp)}`:x.revoked?'<span class="bd revoked">اشتراك ملغى</span>':'<span class="bd">مجاني</span>'} · انضم ${dd(x.created)} · آخر دخول ${dd(x.last)}<br><span class="ltr">${h(x.uid)}</span></div></div>
+ <div class="row"><button class="btn s p" data-gu="${h(x.uid)}">منح اشتراك</button>${x.plan?`<button class="btn s d" data-ru="${h(x.uid)}">إلغاء الاشتراك</button>`:''}</div></div>`;
+ $('#main').innerHTML=`<div class="card"><div class="row"><input id="uq" class="ltr sp" placeholder="بحث ببريد أو UID" value="${h(uq)}"><button class="btn p" id="ub">بحث</button></div></div><div class="card">${r.users.map(row).join('')||'<p class="mu">لا نتائج.</p>'}${r.next?`<button class="btn" id="un" style="width:100%;margin-top:8px">التالي</button>`:''}</div>`;
+ const so=()=>{uq=$('#uq').value.trim();us()};$('#ub').onclick=so;$('#uq').onkeydown=e=>{if(e.key=='Enter')so()};
+ if(r.next)$('#un').onclick=async()=>{const n=await api('users',{cursor:r.next});$('#main').querySelector('.card:last-child').innerHTML=n.users.map(row).join('')};
+ $('#main').onclick=async e=>{const g=e.target.closest('[data-gu]'),v=e.target.closest('[data-ru]');
+  if(g){const p=prompt('الباقة: premium أو pro','premium');if(!p)return;const k=prompt('الفترة: week أو month','month');if(!k)return;const d=prompt('المدة بالأيام (فارغ = 7 للأسبوعي / 30 للشهري)','');
+   try{await api('grant',{uid:g.dataset.gu,plan:p.trim(),period:k.trim(),days:d?+d:undefined});toast('تم منح الاشتراك ✓');us()}catch(x){}}
+  if(v&&confirm('إلغاء اشتراك هذا المستخدم؟')){try{const o=await api('revoke',{uid:v.dataset.ru});toast(o.revoked?'أُلغي الاشتراك ✓':'لا يوجد اشتراك نشط');us()}catch(x){}}}}
+
+let pf='pending';
+async function py(){const r=await api('payments',{status:pf==='all'?'':pf});
+ $('#main').innerHTML=`<div class="card"><div class="chips" id="pc">${[['pending','قيد المراجعة'],['approved','مقبولة'],['rejected','مرفوضة'],['all','الكل']].map(([k,l])=>`<button data-k="${k}" class="${pf==k?'on':''}">${l}</button>`).join('')}</div>
+ ${r.payments.map(x=>`<div class="it"><div><b class="ltr">${h(x.email||x.uid)}</b> <span class="bd ${x.st}">${ST[x.st]}</span>
+ <div class="mu" style="font-size:12.5px;margin-top:3px">${PL[x.p]} · ${PK[x.k]} · ${usd(x.amt)}${x.paid?' · المُدخل: '+h(x.paid):''}<br>مرجع التحويل: <b>${h(x.ref)}</b><br>${dt(x.cr)}${x.rn?'<br>سبب الرفض: '+h(x.rn):''}${x.st=='approved'?'<br>الاشتراك حتى '+dd(x.ex):''}</div></div>
+ <div class="row">${x.hp?`<button class="btn s" data-pf="${x.id}">عرض الإثبات</button>`:''}${x.st=='pending'?`<button class="btn s g" data-ap="${x.id}">قبول</button><button class="btn s d" data-rj="${x.id}">رفض</button>`:''}</div></div>`).join('')||'<p class="mu">لا توجد طلبات.</p>'}</div>`;
+ $('#pc').onclick=e=>{const b=e.target.closest('button');if(b){pf=b.dataset.k;py()}};
+ $('#main').onclick=async e=>{const f=e.target.closest('[data-pf]'),a=e.target.closest('[data-ap]'),j=e.target.closest('[data-rj]');
+  if(f){try{const o=await api('pay_proof',{id:f.dataset.pf}),v=document.createElement('div');v.className='ov';v.innerHTML='<img alt="">';v.firstChild.src=o.img;v.onclick=()=>v.remove();document.body.appendChild(v)}catch(x){}}
+  if(a){if(!confirm('هل تحققت من وصول المبلغ فعليًا إلى حسابك؟ سيُفعَّل الاشتراك للمستخدم فورًا.'))return;try{const o=await api('pay_approve',{id:a.dataset.ap});toast('تم القبول وتفعيل الاشتراك حتى '+dd(o.exp));py()}catch(x){if(x.message=='done'||x.message=='busy')py()}}
+  if(j){const rs=prompt('سبب الرفض (يراه المستخدم):','');if(rs===null)return;try{await api('pay_reject',{id:j.dataset.rj,reason:rs});toast('تم الرفض');py()}catch(x){if(x.message=='done'||x.message=='busy')py()}}}}
+
+async function st(){const b=await api('bank_get');
+ $('#main').innerHTML=`<div class="card"><h2>بيانات الحساب البنكي</h2><p class="mu" style="margin-top:0">تظهر للمستخدم عند طلب الاشتراك (اسم المستفيد، البنك، IBAN/رقم الحساب، تعليمات المرجع).</p><textarea id="bk" maxlength="1500">${h(b.text)}</textarea><div class="row" style="margin-top:10px"><button class="btn p" id="bs2">حفظ</button></div></div>
+ <div class="card"><h3>الحساب</h3><p class="mu" style="margin:0">المالك: <span class="ltr">${OWNER}</span><br>كل العمليات الإدارية تُتحقَّق من الخادم (Firebase Auth + Custom Claim). هذه الواجهة لا تملك أي صلاحية بنفسها.</p></div>`;
+ $('#bs2').onclick=async()=>{try{await api('bank_set',{text:$('#bk').value});toast('تم الحفظ ✓')}catch(x){}}}
+</script>
+</body>
+</html>
