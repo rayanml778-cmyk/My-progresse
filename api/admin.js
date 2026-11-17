@@ -30,6 +30,8 @@ const send = (res, code, obj) => {
   res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(obj));
 };
+// تفصيل خطأ آمن للعرض للمالك: رمز Google فقط (مثل idt403:PERMISSION_DENIED أو sa أو token)، بلا أي نص آخر
+const sdet = (e) => { const m = String((e && e.message) || ''); return /^(idt\d{3}:[A-Z_ ]{0,60}|sa|token)$/.test(m) ? m : 'unknown'; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest();
 const safeEq = (a, b) => crypto.timingSafeEqual(sha(a), sha(b));
@@ -114,7 +116,7 @@ module.exports = async function handler(req, res) {
     const now = Date.now();
     const fails = (bad.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
     if (fails.length >= 10) return send(res, 429, { code: 'slow' });
-    const fail = async () => { fails.push(Date.now()); bad.set(ip, fails); if (bad.size > 500) bad.clear(); await sleep(700); return send(res, 403, { code: 'forbidden' }); };
+    const fail = async (why) => { fails.push(Date.now()); bad.set(ip, fails); if (bad.size > 500) bad.clear(); await sleep(700); return send(res, 403, why ? { code: 'forbidden', why } : { code: 'forbidden' }); };
 
     const a = await authenticate(req);
     if (!a) return fail();
@@ -126,11 +128,21 @@ module.exports = async function handler(req, res) {
 
     // أول مرة: منح حساب المالك صلاحية الإدارة. شرطان معًا: رمز المالك + ADMIN_SECRET (يعيّنه المالك في Vercel).
     if (act === 'bootstrap') {
+      // الأسباب أدناه لا تُعاد إلا لمن اجتاز رمز Firebase الخاص بالمالك (a.kind === 'token' يعني بريد المالك وتوقيعًا سليمًا). لا قيم أسرار في السجل ولا في الرد.
+      const deny = async (why) => { console.error('[admin] bootstrap denied:', why); return fail(why); };
+      if (a.kind !== 'token') return deny('need_token');
       const ai = adminInfo();
-      if (a.kind !== 'token' || !ai.ok || !safeEq(String(req.headers['x-admin-secret'] || ''), ai.s)) return fail();
-      const [u] = await authLookup({ localId: [a.uid] });
-      if (!u || String(u.email).toLowerCase() !== OWNER) return fail();
-      await authSetClaims(a.uid, Object.assign({}, u.claims, { admin: true }), { emailVerified: true });
+      if (!ai.ok) return deny('secret_' + ai.why); // missing | short | reused
+      const given = String(req.headers['x-admin-secret'] || '').trim();
+      if (!given) return deny('header_missing');
+      if (!safeEq(given, ai.s)) return deny('secret_mismatch');
+      let u;
+      try { [u] = await authLookup({ localId: [a.uid] }); }
+      catch (e) { console.error('[admin] bootstrap lookup failed:', e && e.message); return send(res, 502, { code: 'err', why: 'lookup_failed', detail: sdet(e) }); }
+      if (!u || String(u.email).toLowerCase() !== OWNER) return deny('email_mismatch');
+      try { await authSetClaims(a.uid, Object.assign({}, u.claims, { admin: true }), { emailVerified: true }); }
+      catch (e) { console.error('[admin] bootstrap claims failed:', e && e.message); return send(res, 502, { code: 'err', why: 'claims_failed', detail: sdet(e) }); }
+      console.log('[admin] bootstrap ok: admin claim granted to owner');
       return send(res, 200, { ok: true });
     }
     if (!a.owner) return send(res, 403, { code: 'forbidden', need: a.kind === 'token' ? 'claim' : '' });
