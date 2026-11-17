@@ -1,6 +1,6 @@
 // MY PROGRESS service worker
 // غيّر رقم VERSION عند كل نشر لتحديث التطبيق المثبت تلقائيًا
-const VERSION = 'v21';
+const VERSION = 'v22';
 const CACHE = 'mp-' + VERSION;
 
 // ملفات الواجهة الأساسية: تُحفظ عند التثبيت ليفتح التطبيق بدون إنترنت حتى لو لم تُزَر من قبل
