@@ -10,12 +10,13 @@
 //   GROQ_BACKOFF_MS      جدول الانتظار بين جولات التدوير (الافتراضي 1500,2500,4000,6000,8000,10000)
 //   GROQ_RETRY_BUDGET_MS أقصى زمن للمحاولات قبل المحاولة الأخيرة (الافتراضي 48000)
 //   ALLOWED_ORIGINS      نطاقات مسموح لها بالاتصال من موقع آخر، مفصولة بفاصلة
-//   DEV_CODE_HASH        SHA-256 لكود التفعيل (يستخدمه api/activate.js ويوقّع به رموز الباقات)
-//   PLAN_SECRET          (اختياري) سر توقيع مستقل؛ وإلا يُستخدم DEV_CODE_HASH
+//   PLAN_SECRET          إلزامي: سر توقيع رموز الباقات (32+ حرفًا، منفصل عن DEV_CODE_HASH وADMIN_SECRET). بدونه الجميع مجاني
+//   ADMIN_SECRET         إلزامي لـ api/admin.js (صنع الأكواد وإلغاء الاشتراكات)
+//   PLAN_CHECK_TTL_MS    مدة تخزين التحقق من الإلغاء (الافتراضي 30000، 0 = فوري)
 //   GROQ_CONCURRENCY     أقصى طلبات متزامنة لكل نسخة (الافتراضي: عدد المفاتيح × 2)
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
-const { verify: verifyPlan } = require('./_plan');
+const { activePlan, planSecretOk } = require('./_plan');
 const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
@@ -292,7 +293,7 @@ async function handle(req, res) {
   }
   if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
   if (req.method === 'GET' && String(req.url || '').includes('diag')) {
-    return send(res, 200, { keys: discoverKeys().length, model: process.env.GROQ_MODEL || DEFAULT_MODEL, requireAuth: process.env.REQUIRE_AUTH !== '0', serviceAccount: saReady(), planSecret: !!(process.env.PLAN_SECRET || process.env.DEV_CODE_HASH) });
+    return send(res, 200, { keys: discoverKeys().length, model: process.env.GROQ_MODEL || DEFAULT_MODEL, requireAuth: process.env.REQUIRE_AUTH !== '0', serviceAccount: saReady(), planSecret: planSecretOk() });
   }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST, OPTIONS');
@@ -318,8 +319,7 @@ async function handle(req, res) {
     uid = await verifyIdToken(String(req.headers.authorization || '').replace(/^Bearer\s+/i, ''));
     if (!uid) return fail(res, 401, 'auth');
   }
-  let pinfo = verifyPlan(body.pt);
-  if (pinfo && (pinfo.u ? pinfo.u !== uid : process.env.ALLOW_LEGACY_TOKENS !== '1')) pinfo = null;
+  const pinfo = uid ? await activePlan(body.pt, uid) : null; // توقيع + حساب + عدم الإلغاء (entitlements/{uid})
   const plan = pinfo ? pinfo.p : 'free';
   const cfg = PLAN_CFG[plan];
   const tutor = body.tutor === true || ['ar', 'fr', 'en'].includes(body.tutor); // التطبيق يرسل رمز لغة المعلّم

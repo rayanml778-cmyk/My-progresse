@@ -1,7 +1,7 @@
 // api/quota.js — الحالة الرسمية للرصيد من الخادم: يطبّق التصفير المستحق (بعد 5 ساعات) مرة واحدة ويحفظه، ويعيد وقت الخادم للعدّاد.
 // الطلب: GET/POST مع Authorization: Bearer <Firebase ID token> (+ pt اختياري في POST) →
 //   { plan, now, ex, resetAt, used, limit, cooldownMs }
-const { verify: verifyPlan } = require('./_plan');
+const { activePlan } = require('./_plan');
 const { verifyIdToken, saReady, usage, quotaView } = require('./_fb');
 const send = (res, code, obj) => {
   res.statusCode = code;
@@ -17,8 +17,7 @@ module.exports = async function handler(req, res) {
     if (!uid) return send(res, 401, { code: 'auth' });
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
-    let pinfo = verifyPlan(body && body.pt);
-    if (pinfo && pinfo.u !== uid) pinfo = null; // رمز حساب آخر = مجاني
+    const pinfo = await activePlan(body && body.pt, uid); // رمز حساب آخر أو ملغى أو منتهٍ = مجاني
     const plan = pinfo ? pinfo.p : 'free';
     const U = await usage(uid, pinfo ? pinfo.i : 0, plan);
     if (!U) return send(res, 503, { code: 'conf' });
