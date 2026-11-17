@@ -65,8 +65,9 @@ const h=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 const PL={premium:'بريميوم',pro:'برو'},PK={w:'أسبوعي',m:'شهري'},ST={new:'جديد',used:'مستخدم',revoked:'ملغى',expired:'منتهي',pending:'قيد المراجعة',approved:'مقبول',rejected:'مرفوض'};
 const dt=ms=>ms?new Date(ms).toLocaleString('ar',{dateStyle:'medium',timeStyle:'short'}):'—',dd=ms=>ms?new Date(ms).toLocaleDateString('ar',{dateStyle:'medium'}):'—',usd=c=>'$'+((+c||0)/100).toFixed(2);
 const ERR={forbidden:'غير مصرّح',slow:'محاولات كثيرة، انتظر قليلًا',conf:'الخادم غير مهيّأ (FIREBASE_SA / PLAN_SECRET)',bad:'بيانات غير صالحة',none:'غير موجود',done:'تمت معالجة هذا الطلب سابقًا',busy:'الطلب قيد المعالجة',err:'خطأ في الخادم'};
+const BW={need_token:'سجّل الدخول بحساب المالك أولًا',secret_missing:'ADMIN_SECRET غير موجود في الخادم: أعد نشر المشروع Redeploy بعد إضافته',secret_short:'ADMIN_SECRET أقصر من 32 حرفًا',secret_reused:'ADMIN_SECRET يطابق PLAN_SECRET أو DEV_CODE_HASH أو يحتويه: يجب أن يكون سرًّا مستقلًا',header_missing:'لم يُرسل ADMIN_SECRET',secret_mismatch:'القيمة المُدخلة لا تطابق ADMIN_SECRET على الخادم',email_mismatch:'الحساب ليس حساب المالك',lookup_failed:'فشل قراءة الحساب من Firebase (صلاحيات حساب الخدمة)',claims_failed:'فشل منح الصلاحية في Firebase (صلاحيات حساب الخدمة)'};
 let tab='ov',T=0;
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(T);T=setTimeout(()=>t.classList.remove('on'),2600)}
+function toast(m,ms){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(T);T=setTimeout(()=>t.classList.remove('on'),ms||2600)}
 async function raw(action,data,hdr){const u=auth.currentUser;if(!u)throw Object.assign(new Error('auth'),{status:401,j:{}});
   const r=await fetch('/api/admin',{method:'POST',headers:Object.assign({'content-type':'application/json',authorization:'Bearer '+await u.getIdToken()},hdr||{}),body:JSON.stringify(Object.assign({action},data||{}))});
   let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw Object.assign(new Error(j.code||'err'),{status:r.status,j});return j}
@@ -87,7 +88,7 @@ function boot(){gate(`<div class="card"><h2>🔐 تفعيل صلاحية الم�
  <button class="btn" id="o3" style="width:100%;margin-top:8px">خروج</button></div>`);
  $('#o3').onclick=()=>auth.signOut();
  $('#bs').onclick=async()=>{const v=$('#sec').value.trim();if(!v)return;$('#bs').disabled=true;
-  try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){toast('تعذّر المنح: تحقق من ADMIN_SECRET');$('#bs').disabled=false}$('#sec').value=''}}
+  try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){const w=e.j&&e.j.why;toast((w&&BW[w])||(e.status===429?ERR.slow:'تعذّر المنح: تحقق من ADMIN_SECRET')+(e.j&&e.j.detail&&e.j.detail!=='unknown'?' ['+e.j.detail+']':''),7000);$('#bs').disabled=false}$('#sec').value=''}}
 async function check(){try{await raw('whoami');$('#gate').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=OWNER;go(tab)}
  catch(e){if(e.status===403&&e.j&&e.j.need==='claim')boot();else if(e.status===403)denied();else gate(`<div class="card"><h2>تعذّر الاتصال</h2><p class="mu">${h(ERR[e.message]||'حاول مرة أخرى')}</p><button class="btn p" id="rt">إعادة المحاولة</button></div>`),$('#rt')&&($('#rt').onclick=check)}}
 auth.onAuthStateChanged(u=>{if(!u)return login();if(String(u.email).toLowerCase()!==OWNER){return denied()}check()});
