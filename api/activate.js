@@ -13,13 +13,13 @@ const DAY = 86400000;
 const tries = new Map();
 const MAX_TRIES = 8, WINDOW = 10 * 60 * 1000;
 
-function limited(ip) {
-  const now = Date.now();
-  const arr = (tries.get(ip) || []).filter((t) => now - t < WINDOW);
-  arr.push(now);
-  tries.set(ip, arr);
+// يُحتسب المحاولات الفاشلة فقط (كود خاطئ/مستخدم/صيغة سيئة): التخمين هو الخطر. التفعيل الناجح لا يستهلك الحدّ،
+// فلا يُحجب مستخدمون حقيقيون يشتركون في عنوان IP واحد (شبكة جوال/واي فاي مشترك).
+const recent = (ip) => { const now = Date.now(); return (tries.get(ip) || []).filter((t) => now - t < WINDOW); };
+const limited = (ip) => recent(ip).length >= MAX_TRIES;
+function noteFail(ip) {
+  const arr = recent(ip); arr.push(Date.now()); tries.set(ip, arr);
   if (tries.size > 2000) tries.clear();
-  return arr.length > MAX_TRIES;
 }
 const send = (res, code, obj) => {
   res.statusCode = code;
@@ -42,11 +42,11 @@ module.exports = async function handler(req, res) {
 
     let body = req.body;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = null; } }
-    if (!body || typeof body !== 'object') return send(res, 400, { code: 'bad' });
+    if (!body || typeof body !== 'object') { noteFail(ip); return send(res, 400, { code: 'bad' }); }
 
     const norm = codeNorm(body.code);
-    if (!norm) return send(res, 400, { code: 'bad' });
-    const invalid = async () => { await sleep(700); return send(res, 403, { code: 'invalid' }); };
+    if (!norm) { noteFail(ip); return send(res, 400, { code: 'bad' }); }
+    const invalid = async () => { noteFail(ip); await sleep(700); return send(res, 403, { code: 'invalid' }); };
     if (norm.length < 16 || norm.length > 40) return invalid();
 
     const id = codeId(norm);
@@ -62,6 +62,7 @@ module.exports = async function handler(req, res) {
         const p = ent && ent.cid === id && ent.tok && !(+ent.rv) ? verifyToken(ent.tok) : null;
         if (p && p.u === uid) return send(res, 200, { token: ent.tok, plan: p.p, period: p.k === 'w' ? 'week' : 'month', exp: p.e });
       }
+      noteFail(ip);
       return send(res, 409, { code: 'used' });
     };
     if (rec.st === 'used') return again();
@@ -74,7 +75,10 @@ module.exports = async function handler(req, res) {
 
     try {
       const k = rec.k === 'w' ? 'w' : 'm';
-      const exp = now + rec.days * DAY;
+      // نفس الباقة النشطة = تمديد من تاريخ انتهائها (لا تضيع الأيام المتبقية). باقة مختلفة = تحلّ محلّ الحالية.
+      const cur = await fsGet('entitlements/' + uid).catch(() => null);
+      const start = cur && cur.tok && !(+cur.rv) && cur.exp > now && cur.pl === rec.p ? cur.exp : now;
+      const exp = start + rec.days * DAY;
       const token = sign({ p: rec.p, k, i: now, e: exp, u: uid, c: id.slice(0, 16) });
       if (!token) throw new Error('sign');
       await fsSet('entitlements/' + uid, { tok: token, at: now, cid: id, pl: rec.p, exp, rv: 0 }); // يحلّ محل اشتراك الحساب الحالي
