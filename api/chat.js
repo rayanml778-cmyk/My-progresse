@@ -17,7 +17,7 @@
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
 const { activePlan, planSecretOk } = require('./_plan');
-const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView } = require('./_fb');
+const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView, fsGet, fsCreate } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
@@ -114,7 +114,46 @@ const MSG = {
   plan: 'هذه الميزة متاحة في بريميوم وبرو.',
   quota: 'انتهت حصتك المجانية.',
   auth: 'سجّل الدخول أولًا.',
+  lang: 'لغة غير مدعومة.',
+  langlimit: 'وصلت إلى حد اللغات في باقتك.',
 };
+// ---- حدود اللغات من الخادم ----------------------------------------------------------------
+// كل لغة يختارها المستخدم تحجز "خانة" في مستند مستقل langs/{uid}_{n} عبر fsCreate (ذرّي: لا يستبدل ولا يتسابق).
+// الخانات تُملأ بالترتيب ولا تُحذف أبدًا. الحد الفعّال = أول LIM خانات؛ عند التخفيض تبقى اللغات الأخرى محفوظة
+// ومقفلة (لا حذف لأي بيانات) وتُفتح فور الترقية. ما يرسله المتصفح لا يُعتمد: المصدر الوحيد هو هذه الخانات.
+const LANG_CODES = ['ar', 'fr', 'en'];
+const LANG_LIM = { free: 0, premium: 1, pro: 3 };
+const SLOTS = 3;
+const slotCache = new Map(); // uid -> { t, s: [code|''] } ذاكرة قصيرة لتقليل القراءات؛ لا تُمنح بها صلاحية زائدة (الحد يُطبَّق عند كل طلب)
+const SLOT_TTL = 10 * 60 * 1000;
+const slotPath = (uid, n) => 'langs/' + uid + '_' + n;
+async function langSlots(uid) {
+  const s = [];
+  for (let n = 0; n < SLOTS; n++) { const d = await fsGet(slotPath(uid, n)); s.push(d && LANG_CODES.includes(d.l) ? d.l : ''); }
+  slotCache.set(uid, { t: Date.now(), s });
+  if (slotCache.size > 5000) slotCache.delete(slotCache.keys().next().value);
+  return s;
+}
+// يعيد { ok:true } أو { ok:false, langs:[اللغات الفعّالة], limit }
+async function langGate(uid, plan, l) {
+  const lim = LANG_LIM[plan] || 0;
+  const act = (s) => s.slice(0, lim).filter(Boolean);
+  const deny = (s) => ({ ok: false, langs: act(s), limit: lim });
+  if (!lim) return deny([]);
+  const c = slotCache.get(uid);
+  if (c && Date.now() - c.t < SLOT_TTL && act(c.s).includes(l)) return { ok: true };
+  let s = await langSlots(uid);
+  if (act(s).includes(l)) return { ok: true };
+  if (s.includes(l)) return deny(s); // محفوظة لكنها خارج الحد الحالي (بعد تخفيض الباقة)
+  for (let n = 0; n < lim; n++) {
+    if (s[n]) continue;
+    if (await fsCreate(slotPath(uid, n), { l, at: Date.now() })) { s[n] = l; slotCache.set(uid, { t: Date.now(), s }); return { ok: true }; }
+    s = await langSlots(uid); // خسرنا السباق على هذه الخانة: أعد القراءة ثم جرّب التالية
+    if (act(s).includes(l)) return { ok: true };
+    if (s.includes(l)) return deny(s);
+  }
+  return deny(s);
+}
 function send(res, code, obj) {
   if (res.headersSent) return;
   res.statusCode = code;
@@ -328,6 +367,12 @@ async function handle(req, res) {
   const cfg = PLAN_CFG[plan];
   const tutor = body.tutor === true || ['ar', 'fr', 'en'].includes(body.tutor); // التطبيق يرسل رمز لغة المعلّم
   if (tutor && plan === 'free') return fail(res, 403, 'plan');
+  if (tutor && uid && saReady()) {
+    // المعلّم يلزمه رمز لغة صالح (tutor:true بلا لغة كان سيتجاوز الحدّ)، ثم تُحجز/تُتحقَّق الخانة من الخادم
+    if (!LANG_CODES.includes(body.tutor)) return fail(res, 403, 'lang');
+    let g; try { g = await langGate(uid, plan, body.tutor); } catch (e) { console.error('[lang]', e && e.message); return fail(res, 503, 'err'); }
+    if (!g.ok) return send(res, 403, { error: MSG.langlimit, code: 'langlimit', langs: g.langs, limit: g.limit, plan });
+  }
   if (plan === 'free' && freeDaily(ip)) return fail(res, 429, 'quota');
   // الرصيد من جهة الخادم (Firestore): لا يتأثر بمسح المتصفح أو بتعديل الواجهة
   let U = null;
