@@ -283,7 +283,11 @@ async function handle(req, res) {
   // ---- CORS / فحص المصدر ----
   const origin = (req.headers.origin || '').replace(/\/$/, '');
   const allow = allowedOrigins();
-  if (origin && allow.length) {
+  // طلب من نفس النطاق (الموقع نفسه، ومنه روابط Preview المتغيّرة) لا يُحجب أبدًا؛ القائمة تقيّد المواقع الأخرى فقط
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim().toLowerCase();
+  let sameOrigin = false;
+  try { sameOrigin = !!origin && new URL(origin).host.toLowerCase() === host; } catch (e) { sameOrigin = false; }
+  if (origin && allow.length && !sameOrigin) {
     if (!allow.includes(origin)) return send(res, 403, { error: MSG.err, code: 'origin' });
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
