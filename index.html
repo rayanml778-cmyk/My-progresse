@@ -393,6 +393,19 @@ header{gap:8px;min-width:0}.hl{flex:1 1 auto;min-width:0}.hl>div{min-width:0}.hl
 .plct .ic{width:17px;height:17px;color:var(--ok,var(--ac));vertical-align:middle}.plct .plno{opacity:.4}
 .plfn{margin:0;padding:8px 16px 14px;color:var(--mu);font-size:11.5px;line-height:1.55}
 .plfoot{position:sticky;bottom:0;z-index:2;margin:0 -16px;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 6px);background:linear-gradient(to bottom,transparent,var(--bg) 42%)}.plfoot .plb{box-shadow:0 8px 24px color-mix(in srgb,var(--ac) 30%,transparent)}
+/* ===== Plans: mobile/iPhone hardening ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+#pl,#py{overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#pl button,#py button,#pl summary{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#pl input,#py input,#py textarea{font-size:16px!important;max-width:100%}
+.plw{width:100%;min-width:0}.plh h1{min-width:0;overflow-wrap:anywhere}
+.plc,.plst,.pyn,.pyb,.pyf,.plhero{max-width:100%;overflow-wrap:anywhere}
+.plst button{min-height:36px;padding:4px 0;font-weight:700;color:var(--ac);text-decoration:none}
+.plco .plp{margin:2px 0 10px;font-size:13.5px;line-height:1.6}.plco .plcd{margin-top:0}
+.plcd .cdr input{min-width:0;height:46px;letter-spacing:.04em}.plcd .cdr button{height:46px}
+.pyf input[type=text]{height:46px}
+@media(max-width:420px){.plcd .cdr{flex-direction:column}.plcd .cdr input{flex:none;width:100%;height:48px}.plcd .cdr button{width:100%;flex:none}}
+@media(max-width:380px){.plh h1{font-size:21px}.plpr b{font-size:26px}.plhero h2{font-size:18px}.plc{padding:15px 14px 14px;border-radius:22px}.plct{min-width:300px;font-size:12px}.plhero .plmini span{font-size:10.5px}}
 .mmd{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}.mmd::-webkit-scrollbar{display:none}
 .mmd button{flex:none;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--gb);background:var(--gl);color:var(--tx);font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
 .mmd button.on{background:linear-gradient(135deg,var(--ac),var(--ok,var(--ac)));color:var(--bt,#fff);border-color:transparent}
@@ -2292,8 +2305,8 @@ function qApply(q){if(!q||!(q.now>0))return;QCS.base=+q.now;QCS.t0=performance.n
  else{QCS.ex=0;QCS.reset=0;const u=uget();if(u.ex){u.ex=0;usave(u)}}}
 function qDoc(d){const ex=d?+d.ex||0:0;if(userPlan()!='free'){QCS.ex=0;QCS.reset=0;return}
  if(ex!==QCS.ex){QCS.ex=ex;QCS.reset=ex?ex+QCOOL:0;if(!QCS.ok){QCS.base=Date.now();QCS.t0=performance.now()}qSync()}}
-function qSync(){if(QCS.p)return QCS.p;if(!(AU&&AU.uid))return Promise.resolve(null);
- QCS.p=(async()=>{try{const tk=await enIdt();if(!tk)return null;const r=await fetch('/api/quota',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+tk},body:JSON.stringify({pt:mpt()||undefined})});if(!r.ok)return null;const q=await r.json();qApply(q);return q}catch(e){return null}finally{QCS.p=null}})();return QCS.p}
+function qSync(){if(QCS.p)return QCS.p;if(!(EN.uid||(AU&&AU.uid)))return Promise.resolve(null);
+ QCS.p=(async()=>{const t0=Date.now();try{const tk=await enIdt();if(!tk){subFail();return null}const r=await fetch('/api/quota',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+tk},body:JSON.stringify({pt:mpt()||undefined})});if(!r.ok){subFail();return null}const q=await r.json();qApply(q);subApply(q,t0);return q}catch(e){subFail();return null}finally{QCS.p=null}})();return QCS.p}
 function qTxt(){const h=qHMS(qLeft());return h[0]+':'+h[1]+':'+h[2]}
 function qWhen(){return new Date(Date.now()+qLeft()).toLocaleString(LANG,{weekday:'short',hour:'2-digit',minute:'2-digit'})}
 function qBanner(){const h=qHMS(qLeft()),L=[P('ساعة','Hours','Heures'),P('دقيقة','Minutes','Minutes'),P('ثانية','Seconds','Secondes')];
@@ -2304,7 +2317,7 @@ setInterval(()=>{try{const L=qLocked();
  if(L){const h=qHMS(qLeft());document.querySelectorAll('#mqx i[data-q]').forEach(e=>{e.textContent=h[+e.dataset.q]})}
  if(L!==qWasLocked){qWasLocked=L;if(view=='moon')render()}
  if(userPlan()=='free'&&QCS.reset>0&&qLeft()<=0&&!QCS.p&&Date.now()-QCS.rt>3000){QCS.rt=Date.now();qSync().then(q=>{if(q&&q.plan=='free'&&!q.resetAt){toast(P('تجدّدت حصتك المجانية: '+LIMS.free.d+' رصيد. Moon AI جاهز.','Your free allowance is back: '+LIMS.free.d+' credits. Moon AI is ready.','Ton quota gratuit est revenu : '+LIMS.free.d+' crédits.'))}if(view=='moon')render()})}}catch(e){}},1000);
-const EN={uid:'',tok:'',use:null,ready:false,un:[],wt:0,qz:null};
+const EN={uid:'',tok:'',use:null,ready:false,un:[],wt:0,qz:null,planOk:false,planFail:0,tokAt:0,sf:0,rt:0,xt:0};
 const ptInfo=t=>{try{const b=String(t||'').split('.')[0].replace(/-/g,'+').replace(/_/g,'/');if(!b)return null;const j=JSON.parse(atob(b+'==='.slice((b.length+3)%4)));return j&&(j.p=='premium'||j.p=='pro')&&j.e>Date.now()&&!(j.u&&EN.uid&&j.u!==EN.uid)?j:null}catch(e){return null}};
 const mpt=()=>ptInfo(EN.tok)?EN.tok:(ptInfo(lget('mp_pt'))?lget('mp_pt'):'');
 const userPlan=()=>{const i=ptInfo(mpt());return i?i.p:'free'};
@@ -2320,15 +2333,39 @@ const enMerge=s=>{let l=EN.use;if(!l){try{l=JSON.parse(localStorage.getItem('mp_
  else if(s&&s.d>=(l.d||0))EN.use={d:s.d,ti:s.ti||0,g:s.g||0,td:s.td||0,tm:s.tm||0,ex:+s.ex||0};else EN.use=l;
  try{localStorage.setItem('mp_use',JSON.stringify(EN.use))}catch(e){}};
 const enIdt=async()=>{try{return FB.auth&&FB.auth.currentUser?await FB.auth.currentUser.getIdToken():''}catch(e){return''}};
-async function enSetTok(t){EN.tok=t;try{localStorage.setItem('mp_pt',t)}catch(e){}}
-async function enStart(u){if(!u||EN.uid===u.uid)return;enStop(1);EN.uid=u.uid;
- try{await fbInit();const db=FB.db,er=db.collection('entitlements').doc(u.uid),ur=db.collection('usage').doc(u.uid),qr=db.collection('quiz').doc(u.uid);
-  const[es,us,qs]=await Promise.all([er.get(),ur.get(),qr.get()]);
-  EN.tok=es.exists?(es.data().tok||''):'';const lt=lget('mp_pt');
-  enMerge(us.exists?us.data():null);EN.qz=qs.exists?qs.data():null;QZ.merge();EN.ready=true;enPushUse();applyTheme();qDoc(us.exists?us.data():null);qSync();
-  EN.un=[er.onSnapshot(s=>{if(s.exists&&(s.data().tok||'')!==EN.tok){EN.tok=s.data().tok||'';if(!EN.tok){try{localStorage.removeItem('mp_pt')}catch(x){}}applyTheme();qReset0();qSync().then(()=>{if(view=='moon')render()});render()}},()=>{}),ur.onSnapshot(s=>{if(s.exists){enMerge(s.data());qDoc(s.data());if(view=='moon')render()}},()=>{})];
-  render()}catch(e){EN.uid='';EN.ready=false}}
-const enStop=k=>{try{QZ.cancel()}catch(e){}EN.un.forEach(f=>{try{f()}catch(e){}});EN.un=[];EN.uid='';EN.tok='';EN.ready=false;EN.qz=null;qReset0();if(!k){EN.use=null;QZ.d=null;['mp_pt','mp_use','mp_quiz','mp_quiz_u'].forEach(x=>{try{localStorage.removeItem(x)}catch(e){}});try{Object.keys(localStorage).filter(x=>x.indexOf('mp_quiz_s_')==0).forEach(x=>localStorage.removeItem(x))}catch(e){}}};
+/* الاشتراك: المرجع هو الخادم (entitlements/{uid} عبر /api/quota). التخزين المحلي مجرد نسخة سريعة، وأي فشل في قراءة Firestore لا يُسقط المشترك إلى المجاني. */
+async function enSetTok(t){EN.tok=t;EN.tokAt=Date.now();EN.planOk=true;EN.planFail=0;try{localStorage.setItem('mp_pt',t)}catch(e){}subTimer()}
+function subTimer(){clearTimeout(EN.xt);const i=ptInfo(EN.tok);if(!i)return;const ms=i.e-Date.now()+800;if(ms>0&&ms<2147e6)EN.xt=setTimeout(()=>{applyTheme();subSync();render()},ms)}
+const subSync=()=>qSync();
+function subFail(){if(!EN.uid)return;EN.sf=(EN.sf||0)+1;if(EN.sf>=3&&!EN.planOk&&!EN.planFail){EN.planFail=1;if(document.getElementById('pl'))try{render()}catch(e){}}
+ if(!EN.planOk||EN.sf<3){clearTimeout(EN.rt);EN.rt=setTimeout(()=>{if(EN.uid&&!EN.planOk)subSync()},Math.min(30000,2000*EN.sf))}}
+function subApply(q,t0){if(!q||!q.subOk||!EN.uid)return;EN.sf=0;EN.planFail=0;const first=!EN.planOk;EN.planOk=true;
+ if(t0<(EN.tokAt||0)){if(first){applyTheme();render()}return}/* طلب أقدم من تفعيل/تحديث حديث: لا يُعتدّ به */
+ const nt=q.sub&&q.sub.tok||'';let ch=false;
+ if(nt&&nt!==EN.tok){EN.tok=nt;EN.tokAt=Date.now();try{localStorage.setItem('mp_pt',nt)}catch(x){}ch=true}
+ else if(!nt&&(EN.tok||lget('mp_pt'))){EN.tok='';try{localStorage.removeItem('mp_pt')}catch(x){}ch=true}
+ subTimer();if(ch||first){applyTheme();render();if(document.getElementById('pl')&&window.plRedraw)window.plRedraw()}}
+function planWait(){if(!(EN.uid||(AU&&AU.uid))||EN.planOk||ptInfo(mpt()))return false;
+ toast(EN.planFail?P('تعذّر التحقق من اشتراكك الآن. تأكد من الاتصال ثم أعد المحاولة','Could not verify your plan right now. Check your connection and try again','Impossible de vérifier ton abonnement. Vérifie ta connexion'):P('جارٍ التحقق من اشتراكك…','Checking your plan…','Vérification de ton abonnement…'));
+ EN.sf=0;EN.planFail=0;if(EN.uid)subSync();else fbUser().then(u=>u&&enStart(u)).catch(()=>{});return true}
+async function enStart(u){if(!u||EN.uid===u.uid)return;enStop(1);EN.uid=u.uid;enLoad(u.uid,0)}
+async function enLoad(uid,n){if(EN.uid!==uid)return;
+ try{await fbInit();const db=FB.db,er=db.collection('entitlements').doc(uid),ur=db.collection('usage').doc(uid),qr=db.collection('quiz').doc(uid);
+  const g=r=>r.get().then(s=>({s}),e=>({e}));
+  const[es,us,qs]=await Promise.all([g(er),g(ur),g(qr)]);if(EN.uid!==uid)return;
+  /* كل قراءة مستقلة: فشل مستند الرصيد أو الاختبارات لا يمسّ الاشتراك */
+  if(es.s){const t=es.s.exists?(es.s.data().tok||''):'';if(t||!ptInfo(EN.tok)){EN.tok=t;EN.tokAt=Date.now()}EN.planOk=true;if(t){try{localStorage.setItem('mp_pt',t)}catch(x){}}else{try{localStorage.removeItem('mp_pt')}catch(x){}}subTimer()}
+  if(us.s)enMerge(us.s.exists?us.s.data():null);
+  if(qs.s){EN.qz=qs.s.exists?qs.s.data():null;QZ.merge()}
+  const all=!!(es.s&&us.s&&qs.s);
+  if(all){EN.ready=true;enPushUse()}
+  applyTheme();if(us.s)qDoc(us.s.exists?us.s.data():null);
+  subSync();/* الخادم يؤكد الاشتراك ويصحّحه (ويغطي حالة رفض قراءة Firestore من العميل) */
+  if(!EN.un.length)EN.un=[er.onSnapshot(s=>{if(s.exists&&(s.data().tok||'')!==EN.tok){EN.tok=s.data().tok||'';EN.tokAt=Date.now();EN.planOk=true;if(!EN.tok){try{localStorage.removeItem('mp_pt')}catch(x){}}else{try{localStorage.setItem('mp_pt',EN.tok)}catch(x){}}subTimer();applyTheme();qReset0();qSync().then(()=>{if(view=='moon')render()});render()}},()=>{}),ur.onSnapshot(s=>{if(s.exists){enMerge(s.data());qDoc(s.data());if(view=='moon')render()}},()=>{})];
+  render();
+  if(!all)throw new Error('partial')
+ }catch(e){if(EN.uid!==uid)return;clearTimeout(EN.rt);EN.rt=setTimeout(()=>{if(EN.uid===uid&&!EN.ready)enLoad(uid,n+1)},Math.min(60000,2000*Math.pow(2,Math.min(n,5))))}}
+const enStop=k=>{try{QZ.cancel()}catch(e){}EN.un.forEach(f=>{try{f()}catch(e){}});EN.un=[];EN.uid='';EN.tok='';EN.ready=false;EN.qz=null;EN.planOk=false;EN.planFail=0;EN.tokAt=0;EN.sf=0;clearTimeout(EN.rt);clearTimeout(EN.xt);qReset0();if(!k){EN.use=null;QZ.d=null;['mp_pt','mp_use','mp_quiz','mp_quiz_u'].forEach(x=>{try{localStorage.removeItem(x)}catch(e){}});try{Object.keys(localStorage).filter(x=>x.indexOf('mp_quiz_s_')==0).forEach(x=>localStorage.removeItem(x))}catch(e){}}};
 /* سجل اللغات: لإضافة لغة جديدة أضف سطرًا هنا + TUT/TNM/TW (وقائمة اللغات في api/chat.js) */
 const LGS=[['en','🇬🇧','English',['قواعد ومفردات وكتابة ومحادثة بالإنجليزية.','Grammar, vocabulary, writing and speaking practice in English.','Grammaire, vocabulaire, écriture et conversation en anglais.']],['fr','🇫🇷','Français',['القواعد والمفردات والكتابة والمحادثة بالفرنسية.','Grammar, vocabulary, writing and speaking practice in French.','Grammaire, vocabulaire, écriture et conversation en français.']],['ar','🇸🇦','العربية',['النحو والمفردات والكتابة والمحادثة بالعربية الفصحى.','Grammar, vocabulary, writing and speaking practice in Arabic.','Grammaire, vocabulaire, écriture et conversation en arabe.']]];
 const mtm=ss=>{const m=ss?(ss.md||''):(moon().mode||'');return LGS.some(x=>x[0]==m)?m:''};
@@ -2381,7 +2418,7 @@ fr:{t:P('معلّم الفرنسية','French tutor','Professeur de français'),
 en:{t:P('معلّم الإنجليزية','English tutor','English tutor'),q:['Test my English level','Explain the present perfect','Correct my sentence','Practice conversation with me']}};
 const mwel=()=>{const tm=moon().mode||'';if(!TW[tm])return mwel0();const w=TW[tm];return`<div class="card mnw">${I('moon')}<h3>${TNM[tm]}</h3><p class="mu">${w.t}</p><p class="mu">${P('ابدأ بتحديد مستواك ثم نتدرّب خطوة بخطوة: شرح قصير، تمرين، وتصحيح دقيق.','Start with your level, then we practice step by step: a short lesson, an exercise, precise correction.','Commence par ton niveau, puis on s’entraîne pas à pas : leçon courte, exercice, correction précise.')}</p><div class="mqs"><button class="mq" data-a="lh" style="border-color:var(--ac)">🎓 ${P('رحلة التعلّم: اختبار مستوى، خطة، دروس، تمارين، محادثة','Learning path: placement, plan, lessons, exercises, conversation','Parcours : test, plan, leçons, exercices, conversation')}</button>${w.q.map(q=>`<button class="mq" data-a="mq" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`};
 Object.assign(A,{mmode:d=>{if(MS.busy)return;const m=TW[d.m]?d.m:'',mo=moon();if(m==mtm(mo.ss.find(x=>x.id==mo.cur))){if(M&&M.k=='mlg'){M=null;mrender()}return}
- if(m&&userPlan()=='free'){toast(P('معلّمو اللغات ضمن بريميوم وبرو','Language tutors are in Premium and Pro','Les tuteurs sont dans Premium et Pro'));setTimeout(plansOpen,350);return}
+ if(m&&planWait())return;if(m&&userPlan()=='free'){toast(P('معلّمو اللغات ضمن بريميوم وبرو','Language tutors are in Premium and Pro','Les tuteurs sont dans Premium et Pro'));setTimeout(plansOpen,350);return}
  mo.mode=m;mo.cur=null;MD='';MS.edit=null;MS.et='';M=null;mrender();save();MS.sc=1;render()}});
 
 /* ===== الاشتراكات (واجهة كاملة + كود التفعيل) ===== */
@@ -2391,10 +2428,10 @@ const PLANS=[{id:'free',ic:'star',n:['مجاني','Free','Gratuit'],pr:['مجا�
 /* ===== طلب اشتراك بالتحويل البنكي: بيانات الحساب + رفع الإثبات. المراجعة والتفعيل من لوحة المطوّر (api/pay.js ← api/admin.js) ===== */
 function payOpen(plan,per){
  if(document.getElementById('py'))return;plan=plan=='pro'?'pro':'premium';per=per=='w'?'w':'m';
- if(!EN.uid||!EN.ready){toast(P('سجّل الدخول أولًا لربط الاشتراك بحسابك','Sign in first to bind the plan to your account','Connecte-toi d’abord pour lier le plan à ton compte'));return}
+ if(!EN.uid){toast(P('سجّل الدخول أولًا لربط الاشتراك بحسابك','Sign in first to bind the plan to your account','Connecte-toi d’abord pour lier le plan à ton compte'));return}
  const X=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),el=document.createElement('div');el.id='py';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
  const PN={premium:P('بريميوم','Premium','Premium'),pro:P('برو','Pro','Pro')},PRD=per=='w'?P('أسبوعي','weekly','hebdomadaire'):P('شهري','monthly','mensuel');
- let info=null,proof='',busy=false;
+ let info=null,proof='',busy=false,fail=0;
  const cl=()=>{el.classList.remove('on');document.body.style.overflow='';document.removeEventListener('keydown',kd);setTimeout(()=>el.remove(),300)},kd=e=>{if(e.key=='Escape')cl()};
  const api=async(b)=>{const r=await fetch('/api/pay',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+await enIdt()},body:JSON.stringify(b)});let j={};try{j=await r.json()}catch(e){}return{ok:r.ok,j}};
  const EM={auth:P('سجّل الدخول أولًا','Sign in first','Connecte-toi d’abord'),pending:P('لديك طلب قيد المراجعة بالفعل','You already have a request under review','Une demande est déjà en cours'),slow:P('محاولات كثيرة، انتظر قليلًا','Too many attempts, wait a bit','Trop d’essais, patiente'),big:P('الصورة كبيرة جدًا','The image is too large','Image trop volumineuse'),bad:P('تحقق من البيانات والصورة','Check the details and the image','Vérifie les infos et l’image'),conf:P('الخدمة غير مهيّأة على الخادم','Service is not configured','Service non configurée')};
@@ -2405,7 +2442,7 @@ function payOpen(plan,per){
  const draw=()=>{const pend=info&&info.last&&info.last.st=='pending',pr=info&&info.prices?info.prices[plan][per]/100:PRICE[plan][per];
   el.innerHTML=`<div class="plw"><div class="plh"><button class="plx" type="button" data-x="1"><svg class="ic"><use href="#i-x"/></svg>${P('إغلاق','Close','Fermer')}</button><h1>${P('الاشتراك بالتحويل البنكي','Bank-transfer subscription','Abonnement par virement')}</h1></div>
   <section class="plc"><div class="plt"><b>${PN[plan]}</b></div><div class="plpr"><b>$${(+pr).toFixed(2)}</b><span>/ ${PRD}</span></div></section>${note()}
-  ${info?`<section class="plc"><b>${P('بيانات التحويل','Transfer details','Coordonnées du virement')}</b><div class="pyb">${info.bank?X(info.bank):P('لم تُضف بيانات التحويل بعد. تواصل مع الدعم.','Transfer details are not available yet. Contact support.','Coordonnées pas encore disponibles. Contacte le support.')}</div></section>`:`<p class="mu">${P('جارٍ التحميل…','Loading…','Chargement…')}</p>`}
+  ${info?`<section class="plc"><b>${P('بيانات التحويل','Transfer details','Coordonnées du virement')}</b><div class="pyb">${info.bank?X(info.bank):P('لم تُضف بيانات التحويل بعد. تواصل مع الدعم.','Transfer details are not available yet. Contact support.','Coordonnées pas encore disponibles. Contacte le support.')}</div></section>`:`${fail?`<section class="plc"><p class="mu">${P('تعذّر تحميل بيانات التحويل.','Could not load the transfer details.','Chargement impossible.')}</p><button class="plb pr" type="button" data-retry="1">${P('إعادة المحاولة','Retry','Réessayer')}</button></section>`:`<p class="mu">${P('جارٍ التحميل…','Loading…','Chargement…')}</p>`}`}
   ${info&&!pend?`<div class="pyf"><label>${P('اسم المُحوِّل أو رقم العملية (مرجع التحويل)','Sender name or transfer reference','Nom de l’expéditeur ou référence du virement')}</label><input type="text" id="pyr" maxlength="80" autocomplete="off"></div>
   <div class="pyf"><label>${P('المبلغ الذي حوّلته (اختياري)','Amount you sent (optional)','Montant envoyé (facultatif)')}</label><input type="text" id="pya" maxlength="30" inputmode="decimal" autocomplete="off"></div>
   <div class="pyf"><label>${P('صورة إثبات التحويل','Proof of transfer (image)','Preuve du virement (image)')}</label><input type="file" id="pyp" accept="image/*">${proof?`<img class="pyp" src="${proof}" alt="">`:''}</div>
@@ -2420,20 +2457,25 @@ function payOpen(plan,per){
    else toast(EM[r.j.code]||P('تعذّر إرسال الطلب','Could not send the request','Envoi impossible'))}
   catch(e){toast(P('تعذّر الاتصال بالخدمة','Could not reach the service','Service injoignable'))}
   busy=false;draw()}
- el.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.x)return cl();if(t.dataset.send&&!busy)send(t)});
+ el.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;if(t.dataset.x)return cl();if(t.dataset.retry)return load();if(t.dataset.send&&!busy)send(t)});
  el.addEventListener('change',async e=>{if(e.target.id!='pyp')return;const f=e.target.files&&e.target.files[0];if(!f)return;try{proof=await shrink(f);const r=(el.querySelector('#pyr')||{}).value,a=(el.querySelector('#pya')||{}).value;draw();if(r)el.querySelector('#pyr').value=r;if(a)el.querySelector('#pya').value=a}catch(x){proof='';toast(P('تعذّر قراءة الصورة، جرّب صورة أخرى','Could not read the image, try another','Image illisible, essaie une autre'))}});
  draw();document.body.appendChild(el);document.body.style.overflow='hidden';requestAnimationFrame(()=>el.classList.add('on'));document.addEventListener('keydown',kd);
- api({action:'info'}).then(r=>{if(!document.getElementById('py'))return;if(r.ok){info=r.j;draw()}else{toast(EM[r.j.code]||P('تعذّر تحميل بيانات التحويل','Could not load transfer details','Chargement impossible'));cl()}}).catch(()=>{toast(P('تعذّر الاتصال بالخدمة','Could not reach the service','Service injoignable'));cl()})}
+ const load=()=>{info=null;fail=0;draw();api({action:'info'}).then(r=>{if(!document.getElementById('py'))return;if(r.ok){info=r.j}else{fail=1;toast(EM[r.j.code]||P('تعذّر تحميل بيانات التحويل','Could not load transfer details','Chargement impossible'))}draw()}).catch(()=>{if(!document.getElementById('py'))return;fail=1;toast(P('تعذّر الاتصال بالخدمة','Could not reach the service','Service injoignable'));draw()})};load()}
 function plansOpen(w,need){w=w===true;need=(need=='premium'||need=='pro')?need:'';if(document.getElementById('pl'))return;try{localStorage.setItem('mp_plans_seen','1')}catch(e){}let per='m',it='',rev=false,tp=0;try{per=localStorage.getItem('mp_per')=='w'?'w':'m';it=localStorage.getItem('mp_plan_int')||''}catch(e){}
  const el=document.createElement('div');el.id='pl';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
  const cl=()=>{el.classList.remove('on');document.body.style.overflow='';document.removeEventListener('keydown',kd);setTimeout(()=>el.remove(),300)},kd=e=>{if(e.key=='Escape')cl()};
  const PN={premium:P('بريميوم','Premium','Premium'),pro:P('برو','Pro','Pro')};
- const status=()=>{const i=ptInfo(mpt());if(!i)return'';const u=uget(),L=LIMS[i.p],tr_=i.p=='pro'?L.td-u.td:(i.k=='w'?L.tw:L.tm)-u.tm;
-  return`<div class="plst">${P('خطتك الحالية','Current plan','Plan actuel')}: <b>${PN[i.p]}</b> (${i.k=='w'?P('أسبوعي','weekly','hebdo'):P('شهري','monthly','mensuel')})<br>${P('تنتهي في','Ends on','Fin le')} ${new Date(i.e).toLocaleDateString(LANG=='ar'?'ar':LANG)}<br>⚡ Moon: ${i.p=='pro'?'∞':Math.max(0,L.d-u.g)} · ${P('المعلّمون','Tutors','Tuteurs')}: ${Math.max(0,tr_)}<br>${EN.uid?`<span>☁ ${P('مرتبط بحسابك ويتزامن بين أجهزتك','Linked to your account and synced across devices','Lié à ton compte et synchronisé')}</span>`:`<button type="button" data-off="1">${P('إزالة التفعيل من هذا الجهاز','Remove activation from this device','Retirer l’activation de cet appareil')}</button>`}</div>`};
+  const rfb=()=>`<button type="button" data-refresh="1">${P('تحديث الحالة','Refresh status','Actualiser')}</button>`;
+  const status=()=>{const i=ptInfo(mpt());
+   if(!i){if(EN.uid&&!EN.planOk)return`<div class="plst">${EN.planFail?P('تعذّر التحقق من اشتراكك الآن. تأكد من الاتصال.','Could not verify your plan right now. Check your connection.','Vérification impossible pour le moment. Vérifie ta connexion.')+'<br>'+`<button type="button" data-refresh="1">${P('إعادة المحاولة','Retry','Réessayer')}</button>`:'⏳ '+P('جارٍ التحقق من اشتراكك…','Checking your plan…','Vérification de ton abonnement…')}</div>`;
+    return`<div class="plst">${P('خطتك الحالية','Current plan','Plan actuel')}: <b>${P('مجاني','Free','Gratuit')}</b>${EN.uid?'<br>'+P('لا يوجد اشتراك فعّال على حسابك.','No active plan on your account.','Aucun abonnement actif sur ton compte.')+'<br>'+rfb():''}</div>`}
+   const u=uget(),L=LIMS[i.p],tr_=i.p=='pro'?L.td-u.td:(i.k=='w'?L.tw:L.tm)-u.tm,left=Math.max(0,Math.ceil((i.e-Date.now())/864e5));
+   return`<div class="plst">${P('خطتك الحالية','Current plan','Plan actuel')}: <b>${PN[i.p]}</b> (${i.k=='w'?P('أسبوعي','weekly','hebdo'):P('شهري','monthly','mensuel')})<br>${P('تنتهي في','Ends on','Fin le')} ${new Date(i.e).toLocaleDateString(LANG=='ar'?'ar':LANG)} · ${left} ${P('يوم متبقٍّ','days left','j restants')}<br>⚡ Moon: ${i.p=='pro'?'∞':Math.max(0,L.d-u.g)} · ${P('المعلّمون','Tutors','Tuteurs')}: ${Math.max(0,tr_)}<br>${EN.uid?`<span>☁ ${P('مرتبط بحسابك ويتزامن بين أجهزتك','Linked to your account and synced across devices','Lié à ton compte et synchronisé')}</span> ${rfb()}`:`<button type="button" data-off="1">${P('إزالة التفعيل من هذا الجهاز','Remove activation from this device','Retirer l’activation de cet appareil')}</button>`}</div>`};
+  const codeBox=()=>EN.uid?`<section class="plc plco"><div class="plt"><b>${P('لديك كود تفعيل؟','Have an activation code?','Un code d’activation ?')}</b></div><p class="plp">${P('أدخل الكود لتفعيل اشتراكك فورًا على حسابك.','Enter the code to activate your plan on your account right away.','Saisis le code pour activer ton plan tout de suite.')}</p><div class="plcd"><div class="cdr"><input type="text" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="40" data-c="any" placeholder="XXXXX-XXXXX-XXXXX-XXXXX"><button type="button" data-act="any">${P('تفعيل','Activate','Activer')}</button></div></div></section>`:`<section class="plc plco"><div class="plt"><b>${P('سجّل الدخول أولًا','Sign in first','Connecte-toi d’abord')}</b></div><p class="plp">${P('يُربط الاشتراك بحسابك ليبقى معك على كل أجهزتك.','Your plan is tied to your account so it follows you on every device.','Ton plan est lié à ton compte et te suit sur tous tes appareils.')}</p><button class="plb pr" type="button" data-login="1">${P('تسجيل الدخول','Sign in','Se connecter')}</button></section>`;
  const card=x=>{const cur=userPlan()==x.id;let top='',act='';
   if(x.id=='free')top=`<p class="plp">${P(...x.pr)}</p>`;
   else{top=`<div class="plpr"><b>$${PRICE[x.id][per]}</b><span>/ ${per=='w'?P('أسبوع','week','semaine'):P('شهر','month','mois')}</span></div><div class="plalt">${P('أو','or','ou')} <b>$${PRICE[x.id][per=='w'?'m':'w']}</b> / ${per=='w'?P('شهر','month','mois'):P('أسبوع','week','semaine')}</div>`;
-   act=cur?`<button class="plb" disabled>${P('خطتك الحالية','Your current plan','Ton plan actuel')}</button><button class="plb" style="margin-top:8px" data-pay="${x.id}">${P('تجديد / تمديد بالتحويل البنكي','Renew / extend by bank transfer','Renouveler / prolonger par virement')}</button>`:`<button class="plb pr" data-pay="${x.id}">${P('اشترك بالتحويل البنكي','Subscribe by bank transfer','S’abonner par virement bancaire')}</button>${rev?`<details class="plcd" open><summary>${P('كود التفعيل','Activation code','Code d’activation')}</summary><div class="cdr"><input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" data-c="${x.id}" placeholder="XXXXX-XXXXX-XXXXX"><button type="button" data-act="${x.id}">${P('تفعيل','Activate','Activer')}</button></div></details>`:''}`}
+   act=cur?`<button class="plb" disabled>${P('خطتك الحالية','Your current plan','Ton plan actuel')}</button><button class="plb" style="margin-top:8px" data-pay="${x.id}">${P('تجديد / تمديد بالتحويل البنكي','Renew / extend by bank transfer','Renouveler / prolonger par virement')}</button>`:`<button class="plb pr" data-pay="${x.id}">${P('اشترك بالتحويل البنكي','Subscribe by bank transfer','S’abonner par virement bancaire')}</button>`}
   if(x.id=='free'&&userPlan()=='free')act=`<button class="plb" disabled>${P('خطتك الحالية','Your current plan','Ton plan actuel')}</button>`;
   return`<section class="plc${x.hl?' hl2':''}${need==x.id?' plneed':''}"><div class="plt"><span class="pi"><svg class="ic"><use href="#i-${x.ic}"/></svg></span><b>${P(...x.n)}</b>${x.bd?`<span class="bd">${P(...x.bd)}</span>`:''}</div>${top}<ul>${x.f.map((f,n)=>`<li>${n>0&&RK[x.id]>RK[userPlan()]?GB():'<svg class="ic"><use href="#i-check"/></svg>'}<span>${P(...f)}</span></li>`).join('')}</ul>${act}</section>`};
  const pct=Math.min(...['premium','pro'].map(k=>Math.round((1-PRICE[k].m/(PRICE[k].w*52/12))*100))),Y='<svg class="ic"><use href="#i-check"/></svg>',N='<span class="plno">—</span>',lk=(r,c,v)=>(r[4]||v===N||c<=RK[userPlan()])?v:GB()+(v===Y?'':' '+v);
@@ -2452,14 +2494,18 @@ function plansOpen(w,need){w=w===true;need=(need=='premium'||need=='pro')?need:'
   [P('دعم ذو أولوية','Priority support','Support prioritaire'),N,N,Y]];
   return`<section class="plcw"><h3>${P('مقارنة تفصيلية','Side-by-side comparison','Comparatif détaillé')}</h3><div class="plsc"><table class="plct"><thead><tr><th></th><th>${P('مجاني','Free','Gratuit')}</th><th class="hl">${P('بريميوم','Premium','Premium')}</th><th>${P('برو','Pro','Pro')}</th></tr></thead><tbody>${R.map(r=>`<tr${r[4]?' class="pr"':''}><td>${r[0]}</td><td>${lk(r,0,r[1])}</td><td class="hl">${lk(r,1,r[2])}</td><td>${lk(r,2,r[3])}</td></tr>`).join('')}</tbody></table></div><p class="plfn">* ${P('استخدام عادل. يُحسب الرصيد حسب طول الرسالة والرد.','Fair use. Credits depend on message and reply length.','Usage raisonnable. Les crédits dépendent de la longueur des messages.')}</p></section>`};
  const foot=()=>`<div class="plfoot"><button class="plb pr" type="button" data-skip="1">${P('ابدأ مجانًا','Continue with Free','Continuer en Gratuit')}</button></div>`;
- const draw=()=>{el.innerHTML=`<div class="plw"><div class="plh"><button class="plx" type="button"><svg class="ic"><use href="#i-x"/></svg>${w?P('تخطٍ','Skip','Passer'):P('إلغاء','Cancel','Annuler')}</button><h1>${P('الاشتراكات','Plans','Abonnements')}</h1></div>${w?hero():''}${need?`<div class="plbn">${GB()}<span>${need=='pro'?P('هذه الميزة تتطلب باقة برو','This feature needs Pro','Cette fonction nécessite Pro'):P('هذه الميزة تتطلب باقة بريميوم أو أعلى','This feature needs Premium or higher','Cette fonction nécessite Premium ou plus')}</span></div>`:''}<p class="pls">${P('اختر الخطة المناسبة.','Pick your plan.','Choisis ton plan.')}</p><p class="pln">${P('الرصيد حسب طول الرسالة والرد. الدفع متاح الآن بالتحويل البنكي.','Credits depend on message length. Bank-transfer payment is open.','Crédits selon la longueur des messages. Paiement par virement disponible.')}</p>${status()}<div class="plbl"><button type="button" data-per="m" class="${per=='m'?'on':''}">${P('شهري','Monthly','Mensuel')}${sv}</button><button type="button" data-per="w" class="${per=='w'?'on':''}">${P('أسبوعي','Weekly','Hebdo')}</button></div>${pct>0?`<p class="plsvn">${P('الدفع الشهري أوفر بنحو','Monthly billing costs about','Le mensuel revient environ')} ${pct}% ${P('من الأسبوعي','less than weekly','moins cher que l’hebdo')}</p>`:''}${PLANS.map(card).join('')}${w?foot():''}</div>`};
- async function act(plan,code,btn){code=String(code||'').trim();if(!code){toast(P('أدخل الكود','Enter the code','Saisis le code'));return}if(!EN.uid||!EN.ready){toast(P('سجّل الدخول أولًا لربط الاشتراك بحسابك','Sign in first to bind the plan to your account','Connecte-toi d’abord pour lier le plan à ton compte'));return}btn.disabled=true;
+ const draw=()=>{el.innerHTML=`<div class="plw"><div class="plh"><button class="plx" type="button"><svg class="ic"><use href="#i-x"/></svg>${w?P('تخطٍ','Skip','Passer'):P('إلغاء','Cancel','Annuler')}</button><h1>${P('الاشتراكات','Plans','Abonnements')}</h1></div>${w?hero():''}${need?`<div class="plbn">${GB()}<span>${need=='pro'?P('هذه الميزة تتطلب باقة برو','This feature needs Pro','Cette fonction nécessite Pro'):P('هذه الميزة تتطلب باقة بريميوم أو أعلى','This feature needs Premium or higher','Cette fonction nécessite Premium ou plus')}</span></div>`:''}<p class="pls">${P('اختر الخطة المناسبة.','Pick your plan.','Choisis ton plan.')}</p><p class="pln">${P('الرصيد حسب طول الرسالة والرد. الدفع متاح الآن بالتحويل البنكي.','Credits depend on message length. Bank-transfer payment is open.','Crédits selon la longueur des messages. Paiement par virement disponible.')}</p>${status()}${codeBox()}<div class="plbl"><button type="button" data-per="m" class="${per=='m'?'on':''}">${P('شهري','Monthly','Mensuel')}${sv}</button><button type="button" data-per="w" class="${per=='w'?'on':''}">${P('أسبوعي','Weekly','Hebdo')}</button></div>${pct>0?`<p class="plsvn">${P('الدفع الشهري أوفر بنحو','Monthly billing costs about','Le mensuel revient environ')} ${pct}% ${P('من الأسبوعي','less than weekly','moins cher que l’hebdo')}</p>`:''}${PLANS.map(card).join('')}${w?foot():''}</div>`};
+ async function act(plan,code,btn){code=String(code||'').trim();if(!code){toast(P('أدخل الكود','Enter the code','Saisis le code'));return}if(!EN.uid){toast(P('سجّل الدخول أولًا لربط الاشتراك بحسابك','Sign in first to bind the plan to your account','Connecte-toi d’abord pour lier le plan à ton compte'));return}btn.disabled=true;
   try{const r=await fetch('/api/activate',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+await enIdt()},body:JSON.stringify({code,plan,period:per=='w'?'week':'month'})});let j={};try{j=await r.json()}catch(e){}
-   if(r.ok&&j.token){await enSetTok(j.token);applyTheme();toast(P('تم التفعيل ✓','Activated ✓','Activé ✓'));draw();render();return}
-   toast(j.code=='auth'?P('سجّل الدخول أولًا','Sign in first','Connecte-toi d’abord'):j.code=='invalid'?P('الكود غير صحيح','Invalid code','Code invalide'):j.code=='used'?P('هذا الكود مستخدم سابقًا','This code was already used','Ce code a déjà été utilisé'):j.code=='expired'?P('انتهت صلاحية هذا الكود','This code has expired','Ce code a expiré'):j.code=='slow'?P('محاولات كثيرة، انتظر قليلًا','Too many attempts, wait a bit','Trop d’essais, patiente'):j.code=='conf'?P('التفعيل غير مهيّأ على الخادم','Activation is not configured on the server','Activation non configurée'):P('تعذّر التفعيل','Activation failed','Échec de l’activation'))}
+   if(r.ok&&j.token){await enSetTok(j.token);applyTheme();qSync();toast(P('تم التفعيل ✓','Activated ✓','Activé ✓'));draw();render();return}
+   toast(j.code=='auth'?P('سجّل الدخول أولًا','Sign in first','Connecte-toi d’abord'):j.code=='invalid'?P('الكود غير صحيح','Invalid code','Code invalide'):j.code=='used'?P('هذا الكود مستخدم سابقًا','This code was already used','Ce code a déjà été utilisé'):j.code=='expired'?P('انتهت صلاحية هذا الكود','This code has expired','Ce code a expiré'):j.code=='slow'?P('محاولات كثيرة، انتظر قليلًا','Too many attempts, wait a bit','Trop d’essais, patiente'):j.code=='conf'?P('التفعيل غير مهيّأ على الخادم','Activation is not configured on the server','Activation non configurée'):j.code=='bad'?P('تحقق من كتابة الكود','Check the code you typed','Vérifie le code saisi'):P('تعذّر التفعيل، حاول مرة أخرى','Activation failed, please try again','Échec de l’activation, réessaie'))}
   catch(e){toast(P('تعذّر الاتصال بالخدمة','Could not reach the service','Service injoignable'))}btn.disabled=false}
+ window.plRedraw=()=>{if(!el.isConnected)return;const i=el.querySelector('input[data-c]'),v=i?i.value:'';draw();const n=el.querySelector('input[data-c]');if(n&&v)n.value=v};
  draw();document.body.appendChild(el);document.body.style.overflow='hidden';requestAnimationFrame(()=>el.classList.add('on'));document.addEventListener('keydown',kd);if(need)setTimeout(()=>{const t=el.querySelector('.plneed');if(t)try{t.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}},420);
- el.addEventListener('click',e=>{if(e.target.closest('h1')){if(++tp>=5){tp=0;rev=true;draw();toast(P('ظهر حقل الكود','Code field shown','Champ du code affiché'))}return}const t=e.target.closest('button');if(!t)return;
+ el.addEventListener('click',e=>{const t=e.target.closest('button');if(!t)return;
+   if(t.dataset.login){cl();return A.go({v:'set'})}
+   if(t.dataset.refresh){EN.sf=0;EN.planFail=0;t.disabled=true;toast(P('جارٍ تحديث حالة اشتراكك…','Refreshing your plan…','Actualisation…'));subSync().then(()=>{if(document.getElementById('pl'))draw()});return}
+
   if(t.classList.contains('plx'))return cl();
   if(t.dataset.skip)return cl();
   if(t.dataset.pay)return payOpen(t.dataset.pay,per);
@@ -2488,7 +2534,7 @@ function needMet(n){return !n||RK[userPlan()]>=RK[n]}
 function tneed(f){return f=='blue'||f=='pink'?'':'premium'}
 function GB(){return'<span class="gb" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.6l2.5 5.9 6.4.6-4.8 4.3 1.4 6.3L12 16.4 6.5 19.7l1.4-6.3L3.1 9.1l6.4-.6z"/></svg></span>'}
 function GL(n){return needMet(n)?'':'<span class="glk" role="img" aria-label="'+P('مقفل','Locked','Verrouillé')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.6"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/></svg></span>'}
-function gateNeed(n){if(needMet(n))return true;toast(n=='pro'?P('هذه الميزة تتطلب باقة برو','This feature needs Pro','Cette fonction nécessite Pro'):P('هذه الميزة تتطلب باقة بريميوم أو أعلى','This feature needs Premium or higher','Cette fonction nécessite Premium ou plus'));setTimeout(()=>plansOpen(false,n),320);return false}
+function gateNeed(n){if(needMet(n))return true;if(planWait())return false;toast(n=='pro'?P('هذه الميزة تتطلب باقة برو','This feature needs Pro','Cette fonction nécessite Pro'):P('هذه الميزة تتطلب باقة بريميوم أو أعلى','This feature needs Premium or higher','Cette fonction nécessite Premium ou plus'));setTimeout(()=>plansOpen(false,n),320);return false}
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-need]');if(!b||needMet(b.dataset.need))return;e.preventDefault();e.stopImmediatePropagation();gateNeed(b.dataset.need)},true);
 {const g=(k,f)=>{const o=A[k];if(typeof o!='function')return;A[k]=function(d){const n=f(d||{});if(n&&!gateNeed(n))return;return o.apply(this,arguments)}};
 g('mmode',d=>d.m?'premium':'');g('tm',d=>tneed(d.f));g('rbo',()=>'premium')}
@@ -2545,7 +2591,7 @@ streak(l){const ds=new Set(this.rec(l).map(x=>x.d));let t=TODAY(),n=0;if(!ds.has
 pick(l,v){const r=qrg(TODAY()+l+v);return qsh(QBK[l][v],r).slice(0,5).map(q=>{const o=qsh([0,1,2],r);return{q:q[0],o:o.map(i=>q[1][i]),a:o.indexOf(0),x:q[2]}})},
 fin(){const d=this.ld(),l=QS.l,v=QS.v0,s=QS.sc,nv=s>=4?Math.min(2,v+1):s<=1?Math.max(0,v-1):v;(d.r[l]=d.r[l]||[]).push({d:TODAY(),s,t:5,l:v});d.r[l]=d.r[l].slice(-60);d.lv[l]=nv;if(nv!=v){d.cf[l]=CEFR[nv>v?nv*2:nv*2+1];(d.cs=d.cs||{})[l]='quiz'}QS.nv=nv;QS.done=1;this.sv()},
 open(l){if(!QBK[l])return;
- if(userPlan()=='free'){toast(P('معلّمو اللغات ضمن بريميوم وبرو','Language tutors are in Premium and Pro','Les tuteurs sont dans Premium et Pro'));setTimeout(plansOpen,350);return}
+ if(planWait())return;if(userPlan()=='free'){toast(P('معلّمو اللغات ضمن بريميوم وبرو','Language tutors are in Premium and Pro','Les tuteurs sont dans Premium et Pro'));setTimeout(plansOpen,350);return}
  if(!(AU&&AU.uid)){toast(P('سجّل الدخول لحفظ تقدّمك في حسابك','Sign in to save your progress to your account','Connecte-toi pour sauvegarder ta progression'));setTimeout(()=>A.go({v:'set'}),350);return}
  if(!EN.ready){toast(P('جارٍ مزامنة حسابك…','Syncing your account…','Synchronisation…'));fbUser().then(u=>u&&enStart(u)).catch(()=>{});return}
  if($('#qz'))return;QS={l};const el=document.createElement('div');el.id='qz';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');document.body.appendChild(el);document.body.style.overflow='hidden';
@@ -2660,7 +2706,7 @@ ptq(){const l=LS.l,s=LS.pt,lvl=s.cur;LH.run(()=>LH.gen(l,LH.ptQ(l,lvl,s.seen),lh
 });
 
 /* ---------- الواجهة ---------- */
-function lhGate(l,ai){const p=userPlan();
+function lhGate(l,ai){if(planWait())return false;const p=userPlan();
 if(p=='free'){toast(P('معلّمو اللغات ضمن بريميوم وبرو','Language tutors are in Premium and Pro','Les tuteurs sont dans Premium et Pro'));setTimeout(plansOpen,350);return false}
 if(REQ_LOGIN){if(!(AU&&AU.uid)){toast(P('سجّل الدخول لحفظ تقدّمك في حسابك','Sign in to save your progress to your account','Connecte-toi pour sauvegarder ta progression'));setTimeout(()=>A.go({v:'set'}),350);return false}
 if(!EN.ready){toast(P('جارٍ مزامنة حسابك… حاول بعد لحظات','Syncing your account… try again shortly','Synchronisation du compte… réessaie'));fbUser().then(u=>u&&enStart(u)).catch(()=>{});return false}}
