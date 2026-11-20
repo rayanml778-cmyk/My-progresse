@@ -30,6 +30,7 @@ label{display:block;font-size:12.5px;color:var(--mu);margin:0 0 4px}
 .stat{background:rgba(255,255,255,.04);border:1px solid var(--ln);border-radius:14px;padding:12px}.stat b{display:block;font-size:24px;line-height:1.2}.stat span{font-size:12.5px;color:var(--mu)}
 .tabs{display:flex;gap:6px;position:fixed;bottom:0;inset-inline:0;z-index:20;background:rgba(8,14,30,.92);backdrop-filter:blur(14px);border-top:1px solid var(--ln);padding:8px 8px calc(8px + env(safe-area-inset-bottom));justify-content:space-around}
 .tabs button{flex:1;border:0;background:none;padding:7px 2px;border-radius:12px;color:var(--mu);font-size:11.5px;font-weight:700;cursor:pointer;display:grid;gap:2px;justify-items:center}.tabs button em{font-style:normal;font-size:19px}.tabs button.on{color:#fff;background:rgba(47,116,245,.22)}
+.tabs{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:0 0 auto;min-width:66px}
 .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}.chips button{flex:none;height:34px;padding:0 13px;border-radius:99px;border:1px solid var(--ln);background:none;color:var(--mu);cursor:pointer;font-weight:700;font-size:13px}.chips button.on{background:var(--ac);border-color:var(--ac);color:#fff}
 .it{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:11px 0;border-top:1px solid var(--ln)}.it:first-child{border-top:0}
 .code{font:700 15px/1.3 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.5px;direction:ltr;display:inline-block;background:rgba(255,255,255,.06);border-radius:9px;padding:4px 9px;user-select:all}
@@ -41,6 +42,7 @@ label{display:block;font-size:12.5px;color:var(--mu);margin:0 0 4px}
 .gate{max-width:420px;margin:12vh auto 0;padding:0 14px}
 @media(min-width:820px){.tabs{position:sticky;top:0;bottom:auto;inset-inline:auto;border:1px solid var(--ln);border-radius:16px;margin-bottom:14px;padding:6px;justify-content:flex-start}.tabs button{flex:none;grid-auto-flow:column;padding:9px 18px;font-size:14px}.wrap{padding-bottom:30px}#toast{bottom:24px}}
 @media(max-width:560px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}}
+.bd.closed{background:rgba(141,155,189,.14);color:#aab6d3;border-color:rgba(141,155,189,.4)}.rpm{white-space:pre-wrap;word-break:break-word;line-height:1.8;background:rgba(0,0,0,.25);border:1px solid var(--ln);border-radius:13px;padding:10px 12px;margin:8px 0}.kv{display:flex;gap:8px;font-size:13px;padding:3px 0;border-top:1px solid var(--ln)}.kv:first-of-type{border-top:0}.kv>span:first-child{color:var(--mu);min-width:96px;flex:none}.kv>span:last-child{direction:ltr;unicode-bidi:plaintext;word-break:break-all;text-align:start}.ck{display:inline-flex;align-items:center;gap:6px;margin:0 12px 6px 0;color:var(--tx);font-size:14px;cursor:pointer}.ck input{width:18px;height:18px}
 </style>
 </head>
 <body>
@@ -50,7 +52,7 @@ label{display:block;font-size:12.5px;color:var(--mu);margin:0 0 4px}
   <div class="top"><div class="brand"><i>🛡️</i><div>MY PROGRESS<small>لوحة المطوّر · <span class="ltr" id="who"></span></small></div></div>
     <div class="row"><button class="btn s" id="rf">تحديث</button><button class="btn s d" id="lo">خروج</button></div></div>
   <nav class="tabs" id="tabs">
-    <button data-t="ov"><em>📊</em>نظرة عامة</button><button data-t="cd"><em>🎟️</em>الأكواد</button><button data-t="us"><em>👥</em>المستخدمون</button><button data-t="py"><em>🏦</em>الطلبات<b id="pb"></b></button><button data-t="st"><em>⚙️</em>الإعدادات</button>
+    <button data-t="ov"><em>📊</em>نظرة عامة</button><button data-t="cd"><em>🎟️</em>الأكواد</button><button data-t="us"><em>👥</em>المستخدمون</button><button data-t="py"><em>🏦</em>الطلبات<b id="pb"></b></button><button data-t="rp"><em>🛟</em>البلاغات<b id="rb"></b></button><button data-t="qt"><em>⚡</em>رصيد AI</button><button data-t="ln"><em>🎓</em>التعلّم</button><button data-t="ct"><em>📣</em>المحتوى</button><button data-t="lg"><em>🧾</em>السجلات</button><button data-t="st"><em>⚙️</em>الإعدادات</button>
   </nav>
   <main id="main"></main>
 </div>
@@ -89,16 +91,17 @@ function boot(){gate(`<div class="card"><h2>🔐 تفعيل صلاحية الم�
  $('#o3').onclick=()=>auth.signOut();
  $('#bs').onclick=async()=>{const v=$('#sec').value.trim();if(!v)return;$('#bs').disabled=true;
   try{await raw('bootstrap',{},{'x-admin-secret':v});await auth.currentUser.getIdToken(true);toast('تم منح الصلاحية ✓');check()}catch(e){const w=e.j&&e.j.why;toast((w&&BW[w])||(e.status===429?ERR.slow:'تعذّر المنح (HTTP '+(e.status||'؟')+(e.j&&e.j.code?' / '+e.j.code:'')+')')+(e.j&&e.j.detail&&e.j.detail!=='unknown'?' ['+e.j.detail+']':''),7000);$('#bs').disabled=false}$('#sec').value=''}}
-async function check(){try{await raw('whoami');$('#gate').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=OWNER;go(tab)}
+async function check(){try{await raw('whoami');$('#gate').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=OWNER;go(tab);rbadge()}
  catch(e){if(e.status===403&&e.j&&e.j.need==='claim')boot();else if(e.status===403)denied();else gate(`<div class="card"><h2>تعذّر الاتصال</h2><p class="mu">${h(ERR[e.message]||'حاول مرة أخرى')}</p><button class="btn p" id="rt">إعادة المحاولة</button></div>`),$('#rt')&&($('#rt').onclick=check)}}
 auth.onAuthStateChanged(u=>{if(!u)return login();if(String(u.email).toLowerCase()!==OWNER){return denied()}check()});
 
 // ---------- التبويبات ----------
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};$('#rf').onclick=()=>go(tab);$('#lo').onclick=()=>auth.signOut();
-function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));$('#main').innerHTML='<p class="mu">جارٍ التحميل…</p>';({ov,cd,us,py,st})[t]().catch(()=>{$('#main').innerHTML='<p class="mu">تعذّر التحميل. اضغط تحديث.</p>'});window.scrollTo(0,0)}
+function go(t){tab=t;document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));$('#main').innerHTML='<p class="mu">جارٍ التحميل…</p>';$('#main').onclick=null;({ov,cd,us,py,st,qt,ln,ct,lg,rp})[t]().catch(()=>{$('#main').innerHTML='<p class="mu">تعذّر التحميل. اضغط تحديث.</p>'});window.scrollTo(0,0)}
 const stat=(n,l)=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`;
 
-async function ov(){const s=await api('stats'),u=s.users,b=s.subs,c=s.codes,p=s.payments,mx=Math.max(1,...u.signups14);
+async function ov(){await ov0();ovx().catch(()=>{})}
+async function ov0(){const s=await api('stats'),u=s.users,b=s.subs,c=s.codes,p=s.payments,mx=Math.max(1,...u.signups14);
  $('#pb').textContent=p.pending?' ('+p.pending+')':'';
  $('#main').innerHTML=`<div class="card"><h3>المستخدمون</h3><div class="g4">${stat(u.total,'إجمالي الحسابات')}${stat(u.new7,'جدد آخر 7 أيام')}${stat(u.new30,'جدد آخر 30 يومًا')}${stat(u.active7,'نشطون آخر 7 أيام')}</div>
  <p class="mu" style="margin:10px 0 0">تسجيلات آخر 14 يومًا</p><div class="bars">${u.signups14.map(n=>`<i title="${n}" style="height:${Math.round(n/mx*100)}%"></i>`).join('')}</div></div>
@@ -127,17 +130,35 @@ async function cd(){const r=await api('codes'),L=r.codes,flt=x=>cf=='all'||x.st=
  $('#main').onclick=async e=>{const c=e.target.closest('[data-cp]'),v=e.target.closest('[data-rv]');if(c)return copy(c.dataset.cp);
   if(v){if(!confirm(v.dataset.used?'سيُبطل الكود ويُلغى اشتراك المستخدم الناتج عنه. متابعة؟':'إبطال هذا الكود؟'))return;try{const o=await api('revoke',{cid:v.dataset.rv});toast(o.revokedSubscription?'أُلغي الكود والاشتراك':'أُلغي الكود ✓');cd()}catch(x){}}}}
 
-let uq='';
-async function us(){const r=await api('users',{q:uq});
- const row=x=>`<div class="it"><div><b class="ltr">${h(x.email||x.uid)}</b>${x.owner?' <span class="bd used">المالك</span>':''}<div class="mu" style="font-size:12.5px;margin-top:3px">${x.plan?`<span class="bd act">${PL[x.plan]}</span> حتى ${dd(x.exp)}`:x.revoked?'<span class="bd revoked">اشتراك ملغى</span>':'<span class="bd">مجاني</span>'} · انضم ${dd(x.created)} · آخر دخول ${dd(x.last)}<br><span class="ltr">${h(x.uid)}</span></div></div>
- <div class="row"><button class="btn s p" data-gu="${h(x.uid)}">منح اشتراك</button>${x.plan?`<button class="btn s d" data-ru="${h(x.uid)}">إلغاء الاشتراك</button>`:''}</div></div>`;
- $('#main').innerHTML=`<div class="card"><div class="row"><input id="uq" class="ltr sp" placeholder="بحث ببريد أو UID" value="${h(uq)}"><button class="btn p" id="ub">بحث</button></div></div><div class="card">${r.users.map(row).join('')||'<p class="mu">لا نتائج.</p>'}${r.next?`<button class="btn" id="un" style="width:100%;margin-top:8px">التالي</button>`:''}</div>`;
- const so=()=>{uq=$('#uq').value.trim();us()};$('#ub').onclick=so;$('#uq').onkeydown=e=>{if(e.key=='Enter')so()};
- if(r.next)$('#un').onclick=async()=>{const n=await api('users',{cursor:r.next});$('#main').querySelector('.card:last-child').innerHTML=n.users.map(row).join('')};
- $('#main').onclick=async e=>{const g=e.target.closest('[data-gu]'),v=e.target.closest('[data-ru]');
-  if(g){const p=prompt('الباقة: premium أو pro','premium');if(!p)return;const k=prompt('الفترة: week أو month','month');if(!k)return;const d=prompt('المدة بالأيام (فارغ = 7 للأسبوعي / 30 للشهري)','');
-   try{await api('grant',{uid:g.dataset.gu,plan:p.trim(),period:k.trim(),days:d?+d:undefined});toast('تم منح الاشتراك ✓');us()}catch(x){}}
-  if(v&&confirm('إلغاء اشتراك هذا المستخدم؟')){try{const o=await api('revoke',{uid:v.dataset.ru});toast(o.revoked?'أُلغي الاشتراك ✓':'لا يوجد اشتراك نشط');us()}catch(x){}}}}
+const nf=v=>(+v||0).toLocaleString('en');
+function modal(html){const v=document.createElement('div');v.className='ov';v.innerHTML='<div class="card" style="width:min(440px,100%);margin:0;max-height:88vh;overflow:auto">'+html+'</div>';v.onclick=e=>{if(e.target===v)v.remove()};document.body.appendChild(v);return v}
+const LN={ar:'العربية',fr:'الفرنسية',en:'الإنجليزية'};
+let uq='',UL=[],UN='',UF='all';
+const UFL=[['all','الكل'],['premium','بريميوم'],['pro','برو'],['free','مجاني'],['off','موقوف']];
+const ufm=(x,k)=>k=='all'||(k=='off'?x.disabled:k=='free'?!x.plan:x.plan==k);
+const urow=x=>`<div class="it"><div><b class="ltr">${h(x.email||x.uid)}</b>${x.owner?' <span class="bd used">المالك</span>':''}${x.disabled?' <span class="bd revoked">موقوف</span>':''}<div class="mu" style="font-size:12.5px;margin-top:3px">${x.plan?`<span class="bd act">${PL[x.plan]}</span> حتى ${dd(x.exp)}`:x.revoked?'<span class="bd revoked">اشتراك ملغى</span>':'<span class="bd">مجاني</span>'} · انضم ${dd(x.created)} · آخر دخول ${dd(x.last)}<br><span class="ltr">${h(x.uid)}</span></div></div>
+ <div class="row"><button class="btn s p" data-gu="${h(x.uid)}" data-em="${h(x.email||'')}" data-pl="${x.plan||''}">${x.plan?'ترقية / تمديد':'منح اشتراك'}</button>${x.plan?`<button class="btn s d" data-ru="${h(x.uid)}">إلغاء الاشتراك</button>`:''}${x.owner?'':`<button class="btn s ${x.disabled?'g':'d'}" data-ds="${h(x.uid)}" data-on="${x.disabled?0:1}">${x.disabled?'تفعيل الحساب':'إيقاف الحساب'}</button>`}</div></div>`;
+async function us(more){const r=await api('users',more?{cursor:UN}:{q:uq});UL=more?UL.concat(r.users):r.users;UN=r.next||'';usr()}
+function usr(){
+ $('#main').innerHTML=`<div class="card"><div class="row"><input id="uq" class="ltr sp" placeholder="بحث ببريد أو UID" value="${h(uq)}"><button class="btn p" id="ub">بحث</button></div></div>
+ <div class="card"><div class="chips" id="uc">${UFL.map(([k,l])=>`<button data-k="${k}" class="${UF==k?'on':''}">${l} (${UL.filter(x=>ufm(x,k)).length})</button>`).join('')}</div>${UN?'<p class="mu" style="font-size:12px;margin:0 0 6px">الأعداد للحسابات المحمّلة فقط.</p>':''}
+ ${UL.filter(x=>ufm(x,UF)).map(urow).join('')||'<p class="mu">لا نتائج.</p>'}${UN?'<button class="btn" id="un" style="width:100%;margin-top:8px">تحميل المزيد</button>':''}</div>`;
+ const so=()=>{uq=$('#uq').value.trim();us().catch(()=>{})};$('#ub').onclick=so;$('#uq').onkeydown=e=>{if(e.key=='Enter')so()};
+ $('#uc').onclick=e=>{const b=e.target.closest('button');if(b){UF=b.dataset.k;usr()}};
+ if(UN)$('#un').onclick=()=>us(1).catch(()=>{});
+ $('#main').onclick=async e=>{const g=e.target.closest('[data-gu]'),v=e.target.closest('[data-ru]'),d=e.target.closest('[data-ds]');
+  if(g)return grantUI(g.dataset.gu,g.dataset.em,g.dataset.pl);
+  if(v){if(!confirm('إلغاء اشتراك هذا المستخدم؟'))return;try{const o=await api('revoke',{uid:v.dataset.ru});toast(o.revoked?'أُلغي الاشتراك ✓':'لا يوجد اشتراك نشط');us()}catch(x){}}
+  if(d){const off=d.dataset.on=='1';if(!confirm(off?'إيقاف هذا الحساب؟ لن يستطيع تسجيل الدخول مجددًا، وقد تبقى جلسته الحالية فعّالة حتى ساعة على الأكثر.':'إعادة تفعيل هذا الحساب؟'))return;try{await api('user_set',{uid:d.dataset.ds,disabled:off});toast(off?'تم إيقاف الحساب':'تم تفعيل الحساب ✓');us()}catch(x){}}}}
+function grantUI(uid,em,cur){const m=modal(`<h3>${cur?'ترقية / تمديد اشتراك':'منح اشتراك'}</h3><p class="mu ltr" style="margin:0 0 10px">${h(em||uid)}</p>
+ <div class="g2"><div class="fld"><label>الباقة</label><select id="gp"><option value="premium">بريميوم</option><option value="pro">برو</option></select></div>
+ <div class="fld"><label>الفترة</label><select id="gk"><option value="week">أسبوعي</option><option value="month" selected>شهري</option></select></div></div>
+ <div class="fld"><label>المدة بالأيام (اختياري)</label><input id="gd" type="number" min="1" max="366" placeholder="تلقائي (7 / 30)" inputmode="numeric"></div>
+ <p class="mu" style="font-size:12.5px;margin:0 0 10px">نفس الباقة النشطة = تمديد من تاريخ انتهائها. باقة مختلفة (مثل الترقية إلى برو) = تحلّ محل الحالية من الآن برصيد جديد.</p>
+ <div class="row"><button class="btn p sp" id="gok">تأكيد</button><button class="btn" id="gcl">إلغاء</button></div>`);
+ $('#gp').value=cur=='premium'?'pro':'premium';if(cur=='pro')$('#gp').value='pro';
+ $('#gcl').onclick=()=>m.remove();
+ $('#gok').onclick=async e=>{const b=e.target;b.disabled=true;try{await api('grant',{uid,plan:$('#gp').value,period:$('#gk').value,days:+$('#gd').value||undefined});m.remove();toast('تم منح الاشتراك ✓');us()}catch(x){b.disabled=false}}}
 
 let pf='pending';
 async function py(){const r=await api('payments',{status:pf==='all'?'':pf});
@@ -151,10 +172,141 @@ async function py(){const r=await api('payments',{status:pf==='all'?'':pf});
   if(a){if(!confirm('هل تحققت من وصول المبلغ فعليًا إلى حسابك؟ سيُفعَّل الاشتراك للمستخدم فورًا.'))return;try{const o=await api('pay_approve',{id:a.dataset.ap});toast('تم القبول وتفعيل الاشتراك حتى '+dd(o.exp));py()}catch(x){if(x.message=='done'||x.message=='busy')py()}}
   if(j){const rs=prompt('سبب الرفض (يراه المستخدم):','');if(rs===null)return;try{await api('pay_reject',{id:j.dataset.rj,reason:rs});toast('تم الرفض');py()}catch(x){if(x.message=='done'||x.message=='busy')py()}}}}
 
+const QL={free:'المجاني',premium:'بريميوم',pro:'برو'},QF={tokens:'التوكن',hours:'ساعات الشحن',tutor:'توكن المعلّم اليومي'};
+function qdiff(pv,nv){let a={},b={};try{a=JSON.parse(pv||'{}')}catch(e){}try{b=JSON.parse(nv||'{}')}catch(e){}const o=[];for(const p of['free','premium','pro'])for(const k of['tokens','hours','tutor']){const x=a[p]&&a[p][k],y=b[p]&&b[p][k];if(x!==y&&!(x==null&&y==null))o.push({p,k,x,y})}return o}
+const qline=z=>`<div style="font-size:13.5px;margin-top:5px"><span class="mu">${QL[z.p]} · ${QF[z.k]}:</span> <span class="mu">من</span> <b>${z.x==null?'—':z.x}</b> <span class="mu">إلى</span> <b>${z.y}</b></div>`;
+const byTx=x=>x=='secret'?'مفتاح الإدارة':h(x||'—');
+async function qt(){await qt0();await qtl()}
+async function qt0(){const [o,L]=await Promise.all([api('quota_get'),api('audit_list',{kind:'quota'})]),c=o.cfg,df=o.defaults,PN={free:'المجاني (Free)',premium:'بريميوم (Premium)',pro:'برو (Pro)'};
+ const fld=(p,k,l,step,min)=>`<div><label>${l}</label><input type="number" inputmode="decimal" min="${min}" step="${step}" data-q="${p}.${k}" value="${c[p][k]}"></div>`;
+ const row=p=>`<div class="card"><h3>${PN[p]}</h3><div class="g3">${fld(p,'tokens','التوكن لكل دورة',100,100)}${fld(p,'hours','ساعات إعادة الشحن',0.5,0.1)}${p!='free'?fld(p,'tutor','توكن المعلّم يوميًا',100,0):''}</div><p class="mu" style="margin:8px 0 0">الافتراضي: ${df[p].tokens} توكن كل ${df[p].hours} ساعة${p!='free'?' · المعلّم '+df[p].tutor+' يوميًا':''}</p></div>`;
+ const log=L.items.map(x=>`<div class="it" style="display:block"><div class="row"><b>${dt(x.t)}</b><span class="sp"></span><span class="mu ltr" style="font-size:12.5px">${byTx(x.by)}</span></div>${qdiff(x.pv,x.nv).map(qline).join('')}</div>`).join('')||'<p class="mu" style="margin:0">لا تغييرات مسجّلة بعد.</p>';
+ $('#main').innerHTML=`<div class="card"><h2>رصيد Moon AI</h2><p class="mu" style="margin-top:0">يبدأ العدّ من أول رسالة بعد آخر شحن. عند نفاد التوكن يتوقف Moon AI حتى انتهاء المدة، ثم يعود الرصيد كاملًا تلقائيًا. قيم Pro يجب ألا تقل عن Premium. تسري التغييرات خلال نحو 30 ثانية.</p></div>${['free','premium','pro'].map(row).join('')}<div class="row" style="margin-bottom:12px"><button class="btn p" id="qsv">حفظ</button><button class="btn" id="qdf">استعادة الافتراضي</button></div>
+ <div class="card"><h3>سجل التغييرات</h3><p class="mu" style="margin:0 0 6px;font-size:12.5px">القيمة السابقة والجديدة ووقت التعديل والمسؤول (آخر 100 تعديل).</p>${log}</div>`;
+ const read=()=>{const r={free:{},premium:{},pro:{}};document.querySelectorAll('[data-q]').forEach(i=>{const[p,k]=i.dataset.q.split('.');r[p][k]=parseFloat(i.value)});return r};
+ $('#qdf').onclick=()=>{document.querySelectorAll('[data-q]').forEach(i=>{const[p,k]=i.dataset.q.split('.');i.value=df[p][k]});toast('تمت استعادة القيم الافتراضية، اضغط حفظ')};
+ $('#qsv').onclick=async()=>{const r=read();for(const p of ['free','premium','pro'])for(const k in r[p])if(!(r[p][k]>=0)){toast('أدخل أرقامًا صحيحة');return}
+  if(r.pro.tokens<r.premium.tokens){toast('قيمة Pro يجب ألا تقل عن Premium');return}
+  try{await api('quota_set',{cfg:r});toast('تم الحفظ ✓');qt()}catch(e){if(e.j&&e.j.why=='pro_lower')toast('قيمة Pro يجب ألا تقل عن Premium')}}}
 async function st(){const b=await api('bank_get');
  $('#main').innerHTML=`<div class="card"><h2>بيانات الحساب البنكي</h2><p class="mu" style="margin-top:0">تظهر للمستخدم عند طلب الاشتراك (اسم المستفيد، البنك، IBAN/رقم الحساب، تعليمات المرجع).</p><textarea id="bk" maxlength="1500">${h(b.text)}</textarea><div class="row" style="margin-top:10px"><button class="btn p" id="bs2">حفظ</button></div></div>
  <div class="card"><h3>الحساب</h3><p class="mu" style="margin:0">المالك: <span class="ltr">${OWNER}</span><br>كل العمليات الإدارية تُتحقَّق من الخادم (Firebase Auth + Custom Claim). هذه الواجهة لا تملك أي صلاحية بنفسها.</p></div>`;
  $('#bs2').onclick=async()=>{try{await api('bank_set',{text:$('#bk').value});toast('تم الحفظ ✓')}catch(x){}}}
+
+// ---------- نظرة عامة: اللغات + استهلاك التوكن ----------
+async function ovx(){const i=await api('insights');if(tab!='ov')return;
+ const ks=Object.keys(i.langs).sort((a,b)=>i.langs[b]-i.langs[a]),mx=Math.max(1,...ks.map(k=>i.langs[k])),T=i.tokens,PN={free:'المجاني',premium:'بريميوم',pro:'برو'};
+ const hb=(l,n,w)=>`<div style="margin:9px 0"><div class="row"><span>${l}</span><span class="sp"></span><b>${n}</b></div><div style="height:8px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:3px"><i style="display:block;height:100%;width:${w}%;background:linear-gradient(90deg,var(--ac),var(--ok))"></i></div></div>`;
+ $('#main').insertAdjacentHTML('beforeend',`<div class="card"><h3>اللغات الأكثر اختيارًا</h3>${ks.map(k=>hb(LN[k]||h(k),i.langs[k],Math.round(i.langs[k]/mx*100))).join('')||'<p class="mu" style="margin:0">لا بيانات بعد: تظهر عندما يختار المشتركون لغة المعلّم.</p>'}</div>
+ <div class="card"><h3>استهلاك التوكن</h3><div class="g4">${stat(nf(T.window+T.tutor),'قيد الاستهلاك الآن')}${stat(nf(T.life),'الإجمالي منذ بدء التتبع')}${stat(T.active,'مستخدمون نشطون في دوراتهم')}${stat(nf(T.tutor),'المعلّم اليوم')}</div>
+ <div style="margin-top:8px">${['free','premium','pro'].map(p=>`<div class="it"><span>${PN[p]} <span class="mu">(${T.byPlan[p].n} حساب)</span></span><span><b>${nf(T.byPlan[p].w)}</b> <span class="mu">الآن</span> · <b>${nf(T.byPlan[p].l)}</b> <span class="mu">إجمالي</span></span></div>`).join('')}</div>
+ ${i.top.length?`<p class="mu" style="margin:10px 0 2px">الأعلى استهلاكًا (إجمالي)</p>${i.top.map(x=>`<div class="it"><span class="ltr">${h(x.email||x.uid)}</span><b>${nf(x.tt)}</b></div>`).join('')}`:''}
+ <p class="mu" style="margin:10px 0 0;font-size:12px">«الآن» = رصيد الدورة الحالية فقط. «الإجمالي» يُحتسب من تاريخ تفعيل هذا التحديث ولا يشمل الاستهلاك السابق.</p></div>`)}
+
+// ---------- المحتوى: إشعار عام + تعليمات الـ AI ----------
+const NL={info:'معلومة',warn:'تنبيه',ok:'خبر سار'},NB={info:'used',warn:'pending',ok:'new'};
+let PRM={},PRC='all';
+async function ct(){const [n,pr]=await Promise.all([api('notice_get'),api('prompts_get')]);PRM=pr;const cn=n.notice&&n.notice.active?n.notice:null;
+ $('#main').innerHTML=`<div class="card"><h2>إشعار لكل المستخدمين</h2>
+ ${cn?`<div class="out" style="margin:0 0 12px"><div class="row"><b>الإشعار الحالي</b><span class="bd ${NB[cn.lvl]||'used'}">${NL[cn.lvl]||''}</span></div><div style="margin:6px 0;white-space:pre-wrap">${cn.title?'<b>'+h(cn.title)+'</b><br>':''}${h(cn.text)}</div><div class="mu" style="font-size:12.5px">أُرسل ${dt(cn.at)} · ينتهي ${dt(cn.exp)}</div><button class="btn s d" id="nc" style="margin-top:8px">إلغاء الإشعار</button></div>`:'<p class="mu" style="margin-top:0">لا يوجد إشعار نشط.</p>'}
+ <div class="fld"><label>العنوان (اختياري)</label><input id="nt" maxlength="80"></div>
+ <div class="fld"><label>نص الإشعار (حتى 600 حرف)</label><textarea id="nx" maxlength="600" style="min-height:90px"></textarea></div>
+ <div class="g2"><div class="fld"><label>النوع</label><select id="nl"><option value="info">معلومة</option><option value="warn">تنبيه</option><option value="ok">خبر سار</option></select></div><div class="fld"><label>مدة الظهور (أيام)</label><input id="nd" type="number" min="1" max="90" value="7" inputmode="numeric"></div></div>
+ <p class="mu" style="font-size:12.5px;margin:0 0 10px">يظهر لكل مستخدم مرة واحدة عند فتح التطبيق أو تحديث حالة الرصيد. إرسال إشعار جديد يستبدل الحالي.</p>
+ <button class="btn p" id="ns">إرسال للجميع</button></div>
+ <div class="card"><h2>تعليمات الـ AI</h2><p class="mu" style="margin-top:0">نص إضافي يُلحق ببرومبت النظام في كل طلب ويسري خلال نحو 30 ثانية. «كل الطلبات» يشمل الدردشة والمعلّم. تعليمات اللغة تُطبَّق على طلبات المعلّم بتلك اللغة فقط.</p>
+ <div class="fld"><label>النطاق</label><select id="pl"><option value="all">كل الطلبات</option><option value="ar">معلّم اللغة العربية</option><option value="fr">معلّم اللغة الفرنسية</option><option value="en">معلّم اللغة الإنجليزية</option></select></div>
+ <div class="fld"><textarea id="pt" maxlength="4000" style="min-height:170px"></textarea><div class="mu" style="font-size:12px;margin-top:4px" id="pc"></div></div>
+ <button class="btn p" id="ps">حفظ</button></div>`;
+ const ta=$('#pt'),upd=()=>{$('#pc').textContent=ta.value.length+' / 4000'},load=()=>{ta.value=PRM[PRC]||'';upd()};
+ $('#pl').value=PRC;load();ta.oninput=upd;
+ $('#pl').onchange=()=>{if(ta.value!==(PRM[PRC]||'')&&!confirm('لديك تعديلات غير محفوظة، تجاهلها؟')){$('#pl').value=PRC;return}PRC=$('#pl').value;load()};
+ $('#ps').onclick=async e=>{const b=e.target;b.disabled=true;try{await api('prompts_set',{lang:PRC,text:ta.value});PRM[PRC]=ta.value;toast('تم الحفظ ✓')}catch(x){}b.disabled=false};
+ $('#ns').onclick=async e=>{const t=$('#nx').value.trim();if(!t){toast('اكتب نص الإشعار');return}if(!confirm('إرسال هذا الإشعار لكل المستخدمين؟'))return;const b=e.target;b.disabled=true;
+  try{await api('notice_set',{title:$('#nt').value,text:t,lvl:$('#nl').value,days:+$('#nd').value||7});toast('تم الإرسال ✓');ct()}catch(x){b.disabled=false}};
+ const nc=$('#nc');if(nc)nc.onclick=async()=>{if(!confirm('إلغاء الإشعار الحالي؟'))return;try{await api('notice_clear');toast('أُلغي الإشعار');ct()}catch(x){}}}
+
+// ---------- السجلات: أخطاء الخادم + عمليات الإدارة ----------
+let lgm='er';
+const EK={upstream:'اتصال Groq',upstream_http:'خطأ من Groq',keys:'مفاتيح مرفوضة',lang:'حجز اللغة',bill:'احتساب الرصيد',unhandled:'غير متوقع'};
+const AK={grant:'منح اشتراك',revoke:'إلغاء اشتراك',disable:'إيقاف حساب',enable:'تفعيل حساب',quota:'تعديل الرصيد',notice:'إشعار للجميع',notice_clear:'إلغاء الإشعار',prompt:'تعديل التعليمات',errors_clear:'مسح الأخطاء'};
+function audBody(x){
+ if(x.k=='quota')return qdiff(x.pv,x.nv).map(qline).join('');
+ if(x.k=='prompt')return `<div style="font-size:13px"><span class="mu">النطاق:</span> ${x.d=='all'?'كل الطلبات':h(LN[x.d]||x.d)}</div><div class="mu" style="font-size:12.5px;white-space:pre-wrap;margin-top:3px">قبل: ${h(x.pv)||'—'}</div><div style="font-size:12.5px;white-space:pre-wrap;margin-top:3px">بعد: ${h(x.nv)||'—'}</div>`;
+ if(x.k=='grant'){const[a,b]=String(x.d||'').split(' · ');return `<div class="ltr" style="font-size:13px">${h(x.ue||x.u||'')}</div><div class="mu" style="font-size:12.5px">${PL[a]||h(a)} · ${h(b)} يوم</div>`}
+ if(x.k=='revoke'||x.k=='disable'||x.k=='enable')return `<div class="ltr" style="font-size:13px">${h(x.ue||x.d||x.u||'')}</div>`;
+ return x.d?`<div style="font-size:13px;white-space:pre-wrap">${h(x.d)}</div>`:''}
+async function lg(){
+ let body='';
+ if(lgm=='er'){const r=await api('errors_list'),ks=Object.keys(r.c24);
+  body=`<div class="card"><div class="row"><h3 style="margin:0">آخر 24 ساعة</h3><span class="sp"></span>${r.total?'<button class="btn s d" id="ec">مسح السجل</button>':''}</div><div class="row" style="margin-top:8px">${ks.length?ks.map(k=>`<span class="bd rejected">${h(EK[k]||k)}: ${r.c24[k]}</span>`).join(''):'<span class="mu">لا أخطاء في آخر 24 ساعة 🎉</span>'}</div></div>
+  <div class="card">${r.errors.map(x=>`<div class="it" style="display:block"><div class="row"><span class="bd ${/keys|unhandled/.test(x.k)?'rejected':'pending'}">${h(EK[x.k]||x.k)}</span><span class="mu" style="font-size:12.5px">${dt(x.t)}</span></div><div class="ltr" style="font-size:13px;margin-top:5px;word-break:break-word">${h(x.m)||'—'}</div>${x.u?`<div class="mu ltr" style="font-size:12px;margin-top:2px">${h(x.u)}</div>`:''}</div>`).join('')||'<p class="mu" style="margin:0">السجل فارغ.</p>'}</div>`}
+ else{const r=await api('audit_list');
+  body=`<div class="card">${r.items.map(x=>`<div class="it" style="display:block"><div class="row"><span class="bd used">${AK[x.k]||h(x.k)}</span><span class="sp"></span><span class="mu" style="font-size:12.5px">${dt(x.t)}</span></div><div class="mu ltr" style="font-size:12.5px;margin:4px 0">${byTx(x.by)}</div>${audBody(x)}</div>`).join('')||'<p class="mu" style="margin:0">لا عمليات مسجّلة بعد.</p>'}</div>`}
+ $('#main').innerHTML=`<div class="card"><div class="chips" id="lc" style="margin:0"><button data-k="er" class="${lgm=='er'?'on':''}">أخطاء الخادم</button><button data-k="au" class="${lgm=='au'?'on':''}">سجل عمليات الإدارة</button></div></div>`+body;
+ $('#lc').onclick=e=>{const b=e.target.closest('button');if(b&&b.dataset.k!=lgm){lgm=b.dataset.k;lg().catch(()=>{})}};
+ const ec=$('#ec');if(ec)ec.onclick=async()=>{if(!confirm('مسح سجل الأخطاء كاملًا؟'))return;try{await api('errors_clear');toast('تم المسح ✓');lg()}catch(x){}}}
+
+// ---------- البلاغات ----------
+const CAT={ai:'مشكلة AI',credit:'مشكلة رصيد',login:'تسجيل الدخول',tech:'مشكلة تقنية',idea:'اقتراح'},RS={new:'جديد',review:'قيد المراجعة',solved:'تم الحل',closed:'مغلق'},RB={new:'new',review:'pending',solved:'used',closed:'closed'};
+let rf='all';
+const spn=x=>x=='unknown'?'—':(PL[x]||(x?'مجاني':'—'));
+function rbadge(){raw('reports_list').then(r=>{$('#rb').textContent=r.cnt.new?' ('+r.cnt.new+')':''}).catch(()=>{})}
+async function rp(){const r=await api('reports_list',{status:rf==='all'?'':rf}),c=r.cnt,tot=c.new+c.review+c.solved+c.closed;
+ $('#rb').textContent=c.new?' ('+c.new+')':'';
+ const chip=(k,l,n)=>`<button data-rf="${k}" class="${rf==k?'on':''}">${l} (${n})</button>`;
+ $('#main').innerHTML=`<div class="card"><h2>البلاغات</h2><div class="chips">${chip('all','الكل',tot)}${['new','review','solved','closed'].map(k=>chip(k,RS[k],c[k])).join('')}</div>`+
+  (r.items.map(x=>`<div class="it" data-rid="${h(x.id)}" style="cursor:pointer"><div style="min-width:0;flex:1"><div class="row"><span class="code">${h(x.ref)}</span><span class="bd ${RB[x.st]||''}">${RS[x.st]||h(x.st)}</span><span class="bd">${CAT[x.cat]||h(x.cat)}</span>${x.replied?'<span class="mu" style="font-size:12.5px">↩ تم الرد</span>':''}</div><div style="margin-top:5px;font-size:14px;word-break:break-word">${h(x.msg)}</div><div class="mu" style="font-size:12.5px;margin-top:3px"><span class="ltr">${h(x.em||'مجهول')}</span> · ${dt(x.at)}${x.anon?'':' · '+spn(x.sp)}</div></div></div>`).join('')||'<p class="mu" style="margin:0">لا بلاغات.</p>')+`</div>`;
+ $('#main').onclick=e=>{const f=e.target.closest('[data-rf]');if(f){rf=f.dataset.rf;return rp()}const i=e.target.closest('[data-rid]');if(i)rpd(i.dataset.rid)}}
+async function rpd(id){const o=await api('report_get',{id}),r=o.r,t=o.tech||{},q=o.q||{},anon=!r.uid;
+ const kv=(k,v)=>v===undefined||v===null||v===''?'':`<div class="kv"><span>${k}</span><span>${h(v)}</span></div>`;
+ const yn=v=>v===undefined?'':v?'نعم':'لا';
+ const tc=kv('إصدار التطبيق',t.app)+kv('الباقة (الواجهة)',t.plan)+kv('الباقة (الخادم)',r.sp?spn(r.sp):'')+kv('الشاشة/القسم',t.view)+kv('لغة الواجهة',t.ui)+kv('لغة المتصفح',t.lang)+kv('الشاشة',t.scr)+kv('المنطقة الزمنية',t.tz)+kv('الثيم',t.theme)+kv('الشبكة',t.net)+kv('متصل',yn(t.online))+kv('PWA',yn(t.pwa))+kv('Service Worker',yn(t.sw))+kv('المتصفح',t.ua)+(t.errs&&t.errs.length?kv('أخطاء الواجهة',t.errs.join(' | ')):'');
+ const qc=q.limit?kv('الرصيد المستخدم',q.used+' / '+q.limit)+(q.tl?kv('رصيد المعلّم',q.tu+' / '+q.tl):'')+kv('موعد الشحن',q.ra?dt(q.ra):'—')+kv('وقت نفاد المجاني',q.ex?dt(q.ex):''):'';
+ const ec=(o.errs||[]).map(x=>`<div class="kv"><span>${dt(x.t)}</span><span>${h(x.k)}: ${h(x.m)}</span></div>`).join('');
+ $('#main').innerHTML=`<div class="row" style="margin-bottom:10px"><button class="btn s" id="rpb">← رجوع</button><span class="sp"></span><button class="btn s" id="rpr">تحديث</button></div>
+ <div class="card"><div class="row"><span class="code" id="rpc">${h(r.ref)}</span><button class="btn s" id="rpcp">نسخ</button><span class="bd ${RB[r.st]||''}">${RS[r.st]||h(r.st)}</span><span class="bd">${CAT[r.cat]||h(r.cat)}</span></div>
+ <div class="mu" style="font-size:12.5px;margin-top:6px">${dt(r.at)} · آخر تحديث ${dt(r.up)}</div><div class="rpm">${h(r.msg)}</div>
+ ${kv('المستخدم',r.em||(anon?'بلاغ مجهول':''))}${kv('معرّف الحساب',r.uid)}${anon&&r.ct?`<div class="kv"><span>بريد للتواصل</span><span><a href="mailto:${h(r.ct)}" style="color:#8fb4ff">${h(r.ct)}</a></span></div>`:''}</div>
+ <div class="card"><h3>التفاصيل التقنية (تلقائية)</h3>${tc||'<p class="mu" style="margin:0">لم تُرفق تفاصيل.</p>'}${qc?'<h3 style="margin-top:12px">حالة الرصيد وقت الإرسال</h3>'+qc:''}${ec?'<h3 style="margin-top:12px">آخر أخطاء الخادم لهذا الحساب</h3>'+ec:''}<p class="mu" style="font-size:12px;margin:10px 0 0">لا تحتوي البلاغات على كلمات مرور أو مفاتيح أو محادثات؛ تُحجب هذه من الخادم قبل الحفظ.</p></div>
+ <div class="card"><h3>الحالة</h3><div class="chips" id="rps">${['new','review','solved','closed'].map(k=>`<button data-st="${k}" class="${r.st==k?'on':''}">${RS[k]}</button>`).join('')}</div></div>
+ <div class="card"><h3>الرد على المستخدم</h3>${anon?'<p class="mu" style="margin:0">بلاغ مجهول: لا يصل الرد داخل التطبيق'+(r.ct?'، راسله على بريده أعلاه.':'، ولم يترك وسيلة تواصل.')+'</p>':`<p class="mu" style="margin:0 0 8px;font-size:12.5px">يظهر الرد للمستخدم في «بلاغاتي» داخل التطبيق${r.rat?' · آخر رد '+dt(r.rat):''}.</p><textarea id="rpt" maxlength="1500" placeholder="اكتب ردك…">${h(r.rep)}</textarea><div class="row" style="margin-top:10px"><select id="rpst" style="width:auto"><option value="">الحالة بعد الرد: ${r.st=='new'?'قيد المراجعة':'كما هي'}</option><option value="review">قيد المراجعة</option><option value="solved">تم الحل</option><option value="closed">مغلق</option></select><button class="btn p" id="rps2">إرسال الرد</button></div>`}</div>
+ <div class="card"><h3>ملاحظة خاصة (لا تظهر للمستخدم)</h3><textarea id="rpn" maxlength="1500" style="min-height:70px">${h(r.nt)}</textarea><div class="row" style="margin-top:10px"><button class="btn" id="rpns">حفظ الملاحظة</button></div></div>`;
+ $('#main').onclick=null;
+ $('#rpb').onclick=()=>rp();$('#rpr').onclick=()=>rpd(id);$('#rpcp').onclick=()=>copy(r.ref);
+ $('#rps').onclick=async e=>{const b=e.target.closest('[data-st]');if(!b||b.dataset.st==r.st)return;try{await api('report_set',{id,st:b.dataset.st});toast('تم تغيير الحالة ✓');rbadge();rpd(id)}catch(x){}};
+ const sb=$('#rps2');if(sb)sb.onclick=async()=>{const t=$('#rpt').value.trim();if(!t){toast('اكتب الرد أولًا');return}sb.disabled=true;try{await api('report_reply',{id,text:t,st:$('#rpst').value||undefined});toast('تم إرسال الرد ✓');rbadge();rpd(id)}catch(x){sb.disabled=false}};
+ $('#rpns').onclick=async()=>{try{await api('report_note',{id,text:$('#rpn').value});toast('تم الحفظ ✓')}catch(x){}}}
+
+// ---------- حدود اللغات (قسم داخل تبويب رصيد AI) ----------
+
+// ---------- ميزات التعلّم: أعلام التشغيل + مراقبة الأخطاء ونقاط الضعف والوسوم والأزرار ----------
+async function ln(){const o=await api('learn_get'),F=o.flags,days=o.days||[];
+ const sum={},wk={};for(const d of days){for(const[k,v]of Object.entries(d.c||{}))sum[k]=(sum[k]||0)+(+v||0);for(const[k,v]of Object.entries(d.w||{}))wk[k]=(wk[k]||0)+(+v||0)}
+ const n=k=>sum[k]||0,pc=(a,b)=>b>0?Math.round(a/b*100)+'%':'—';
+ const FL=[['wk','تتبّع نقاط الضعف','حفظ نقاط الضعف والأخطاء المحدّدة من تصحيحات Moon AI والتمارين (وتمرير آخر الأخطاء للمعلّم).'],['btn','أزرار الدروس في المحادثة','أزرار «افتح الدرس» و«تمارين» التي يقترحها المعلّم داخل المحادثة.'],['adapt','تكيّف التمارين','«المراجعة العامة» تتحوّل لأعلى نقطة ضعف، وتُعاد الأخطاء السابقة بجمل جديدة.'],['tel','إحصاءات الاستخدام','عدّادات مجهولة بلا نصوص تغذّي هذا التبويب (أوقفها لإيقاف الجمع كليًا).']];
+ const tags=n('rc')?pc(n('rt'),n('rc')):'—',valid=pc(n('tw')+n('tl'),n('tw')+n('tl')+n('ti'));
+ const top=Object.entries(wk).sort((a,b)=>b[1]-a[1]).slice(0,12);
+ const rows=days.map(d=>{const c=d.c||{};return `<tr><td class="ltr">${h(d.d)}</td><td>${c.rc||0}</td><td>${c.rt||0}</td><td>${c.rn||0}</td><td>${c.ti||0}</td><td>${c.bo||0}</td><td>${c.bl||0}</td><td>${c.bc||0}</td><td>${c.be||0}</td><td>${c.bf||0}</td><td>${c.ew||0}</td><td>${c.er||0}</td><td>${c.ax||0}</td></tr>`}).join('');
+ $('#main').innerHTML=`<div class="card"><h2>التحكم بميزات التعلّم</h2><p class="mu" style="margin-top:0">تسري على التطبيق خلال نحو 30 ثانية (عند أول مزامنة للرصيد). التعطيل لا يحذف أي بيانات محفوظة؛ يوقف الميزة فقط.</p>
+  ${FL.map(([k,t,d])=>`<label class="ck" style="display:block;margin:8px 0"><input type="checkbox" data-lf="${k}" ${F[k]?'checked':''}> <b>${t}</b><div class="mu" style="font-size:12.5px;margin:2px 0 0">${d}</div></label>`).join('')}
+  <div class="row"><button class="btn p" id="lfs">حفظ الإعدادات</button></div></div>
+  <div class="card"><h3>المؤشرات (آخر ${days.length} أيام)</h3><div class="g4">${stat(n('ew'),'إجابات خاطئة في التمارين')}${stat(n('er'),'أخطاء محدّدة محفوظة')}${stat(n('tw'),'وسوم ضعف مقبولة')}${stat(n('wx'),'نقاط ضعف زالت')}</div>
+  <div class="g4" style="margin-top:10px">${stat(tags,'التزام AI بوسم التصحيحات')}${stat(valid,'صلاحية الوسوم')}${stat(n('ax'),'تمارين تكيّفت مع ضعف')}${stat(n('ce'),'تصحيحات ✏️ في المحادثة')}</div>
+  <p class="mu" style="margin:10px 0 0;font-size:12.5px">التزام الوسوم = نسبة ردود المعلّم التي صحّحت أخطاءً ووسمتها بموضوع صالح. «بلا وسم» ارتفاعه يعني أن النموذج ينسى الوسوم (لا تُحفظ نقاط الضعف لتلك الردود).</p></div>
+  <div class="card"><h3>أكثر نقاط الضعف تكرارًا</h3>${top.length?top.map(([k,v])=>`<div class="row" style="justify-content:space-between;margin:4px 0"><span class="ltr">${h(k)}</span><b>${v}</b></div>`).join(''):'<p class="mu">لا بيانات بعد.</p>'}</div>
+  <div class="card"><h3>سجلّ استخدام الأزرار والوسوم (يوميًا)</h3><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:center"><thead><tr><th>اليوم</th><th title="ردود فيها تصحيح">ردود</th><th title="ردود وسمت التصحيح">وُسمت</th><th title="ردود بلا وسم">بلا وسم</th><th title="وسوم غير صالحة">غير صالح</th><th title="فتح درس">درس</th><th title="درس مقفل">مقفل</th><th title="درس مكتمل">مكتمل</th><th title="تمارين">تمارين</th><th title="فشل الزر">فشل</th><th>خطأ تمارين</th><th>أخطاء محفوظة</th><th>تكيّف</th></tr></thead><tbody>${rows||'<tr><td colspan="13" class="mu">لا بيانات بعد.</td></tr>'}</tbody></table></div>
+  <div class="row" style="margin-top:10px"><button class="btn" id="lfc">مسح الإحصاءات</button></div></div>`;
+ $('#lfs').onclick=async()=>{const fl={};document.querySelectorAll('[data-lf]').forEach(c=>{fl[c.dataset.lf]=c.checked?1:0});try{await api('learn_set',{flags:fl});toast('تم الحفظ ✓');ln()}catch(e){}};
+ $('#lfc').onclick=async()=>{if(!confirm('مسح كل إحصاءات التعلّم؟ (لا تتأثر بيانات المستخدمين)'))return;try{await api('learn_clear');toast('تم المسح ✓');ln()}catch(e){}}}
+async function qtl(){const o=await api('lang_get'),c=o.cfg,df=o.defaults,LN={ar:'العربية',fr:'Français',en:'English'},PN={free:'المجاني (Free)',premium:'بريميوم (Premium)',pro:'برو (Pro)'};
+ const row=p=>{const lock=p=='free';return `<div class="card" style="margin-bottom:10px"><h3>${PN[p]}</h3>${lock?'<p class="mu" style="margin:0 0 8px;font-size:12.5px">المعلّم غير متاح للباقة المجانية حاليًا (يرفضه الخادم قبل فحص اللغات)، لذا لا تأثير لهذا الصف الآن. القيمة محفوظة ومعطّلة.</p>':''}<div class="fld"><label>عدد اللغات التي يختارها المستخدم</label><select data-ln="${p}" ${lock?'disabled':''}>${[0,1,2,3].map(n=>`<option value="${n}" ${c[p].n==n?'selected':''}>${n}${n==0?' (بلا لغات)':''}</option>`).join('')}</select></div><label>اللغات المسموحة</label><div>${['ar','fr','en'].map(l=>`<label class="ck"><input type="checkbox" data-lc="${p}.${l}" ${c[p].l.includes(l)?'checked':''} ${lock?'disabled':''}>${LN[l]}</label>`).join('')}</div><p class="mu" style="margin:6px 0 0;font-size:12.5px">الافتراضي: ${df[p].n} من ${df[p].l.length}</p></div>`};
+ $('#main').insertAdjacentHTML('beforeend',`<div class="card" id="lgc" style="margin-top:6px"><h2>حدود اللغات</h2><p class="mu" style="margin-top:0">تُطبَّق من الخادم في كل طلب للمعلّم (وليس من الواجهة فقط) وتسري خلال نحو 30 ثانية. عند التخفيض لا تُحذف لغات المستخدمين المحفوظة، بل تُقفل وتُفتح فور عودتها ضمن الحد. قيمة Pro يجب ألا تقل عن Premium.</p>${['free','premium','pro'].map(row).join('')}<div class="row"><button class="btn p" id="lsv">حفظ حدود اللغات</button><button class="btn" id="ldf">استعادة الافتراضي</button></div></div>`);
+ const rd=()=>{const r={};for(const p of['free','premium','pro']){const s=document.querySelector(`[data-ln="${p}"]`);r[p]={n:+s.value,l:['ar','fr','en'].filter(l=>document.querySelector(`[data-lc="${p}.${l}"]`).checked)}}return r};
+ $('#ldf').onclick=()=>{for(const p of['premium','pro']){document.querySelector(`[data-ln="${p}"]`).value=df[p].n;['ar','fr','en'].forEach(l=>{document.querySelector(`[data-lc="${p}.${l}"]`).checked=df[p].l.includes(l)})}toast('تمت استعادة القيم الافتراضية، اضغط حفظ')};
+ $('#lsv').onclick=async()=>{const r=rd();for(const p of['premium','pro'])if(r[p].n>0&&!r[p].l.length){toast('اختر لغة واحدة على الأقل لباقة '+PN[p]);return}
+  if(r.pro.n<r.premium.n){toast('قيمة Pro يجب ألا تقل عن Premium');return}
+  try{await api('lang_set',{cfg:r});toast('تم الحفظ ✓');qt()}catch(e){if(e.j&&e.j.why=='pro_lower')toast('قيمة Pro يجب ألا تقل عن Premium')}}}
 </script>
 </body>
 </html>
