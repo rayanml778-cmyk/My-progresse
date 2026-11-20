@@ -14,10 +14,11 @@
 //   ADMIN_SECRET         إلزامي لـ api/admin.js (صنع الأكواد وإلغاء الاشتراكات)
 //   PLAN_CHECK_TTL_MS    مدة تخزين التحقق من الإلغاء (الافتراضي 30000، 0 = فوري)
 //   GROQ_CONCURRENCY     أقصى طلبات متزامنة لكل نسخة (الافتراضي: عدد المفاتيح × 2)
+//   (عدّاد توكن بريميوم/برو: الكمية ومدة التعبئة تُضبط من لوحة المطوّر ← الإعدادات، وتُحفظ في config/ai)
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
 const { activePlan, planSecretOk } = require('./_plan');
-const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView, fsGet, fsCreate } = require('./_fb');
+const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView, fsGet, fsCreate, logErr, promptsGet, lcfg } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
@@ -113,6 +114,7 @@ const MSG = {
   err: 'حدث خطأ مؤقت. حاول مرة أخرى.',
   plan: 'هذه الميزة متاحة في بريميوم وبرو.',
   quota: 'انتهت حصتك المجانية.',
+  tokens: 'انتهى رصيدك من التوكن. يُعاد الشحن تلقائيًا عند انتهاء المهلة.',
   auth: 'سجّل الدخول أولًا.',
   lang: 'لغة غير مدعومة.',
   langlimit: 'وصلت إلى حد اللغات في باقتك.',
@@ -122,7 +124,6 @@ const MSG = {
 // الخانات تُملأ بالترتيب ولا تُحذف أبدًا. الحد الفعّال = أول LIM خانات؛ عند التخفيض تبقى اللغات الأخرى محفوظة
 // ومقفلة (لا حذف لأي بيانات) وتُفتح فور الترقية. ما يرسله المتصفح لا يُعتمد: المصدر الوحيد هو هذه الخانات.
 const LANG_CODES = ['ar', 'fr', 'en'];
-const LANG_LIM = { free: 0, premium: 1, pro: 3 };
 const SLOTS = 3;
 const slotCache = new Map(); // uid -> { t, s: [code|''] } ذاكرة قصيرة لتقليل القراءات؛ لا تُمنح بها صلاحية زائدة (الحد يُطبَّق عند كل طلب)
 const SLOT_TTL = 10 * 60 * 1000;
@@ -136,15 +137,16 @@ async function langSlots(uid) {
 }
 // يعيد { ok:true } أو { ok:false, langs:[اللغات الفعّالة], limit }
 async function langGate(uid, plan, l) {
-  const lim = LANG_LIM[plan] || 0;
-  const act = (s) => s.slice(0, lim).filter(Boolean);
-  const deny = (s) => ({ ok: false, langs: act(s), limit: lim });
-  if (!lim) return deny([]);
+  const C = (await lcfg())[plan] || { n: 0, l: [] };           // الحد والقائمة المسموحة من لوحة المطوّر (config/langs): تُقرأ من الخادم (ذاكرة 30 ث)
+  const lim = Math.min(C.n | 0, SLOTS), okL = (x) => C.l.includes(x);
+  const act = (s) => s.slice(0, lim).filter((x) => x && okL(x));
+  const deny = (s) => ({ ok: false, langs: act(s), limit: lim, allowed: C.l });
+  if (!lim || !okL(l)) { let s = []; try { s = await langSlots(uid); } catch (e) { /* يُعاد رفض بلا قائمة */ } return deny(s); }
   const c = slotCache.get(uid);
   if (c && Date.now() - c.t < SLOT_TTL && act(c.s).includes(l)) return { ok: true };
   let s = await langSlots(uid);
   if (act(s).includes(l)) return { ok: true };
-  if (s.includes(l)) return deny(s); // محفوظة لكنها خارج الحد الحالي (بعد تخفيض الباقة)
+  if (s.includes(l)) return deny(s); // محفوظة لكنها خارج الحد الحالي أو غير مسموحة بعد تغيير الإعدادات
   for (let n = 0; n < lim; n++) {
     if (s[n]) continue;
     if (await fsCreate(slotPath(uid, n), { l, at: Date.now() })) { s[n] = l; slotCache.set(uid, { t: Date.now(), s }); return { ok: true }; }
@@ -370,15 +372,15 @@ async function handle(req, res) {
   if (tutor && uid && saReady()) {
     // المعلّم يلزمه رمز لغة صالح (tutor:true بلا لغة كان سيتجاوز الحدّ)، ثم تُحجز/تُتحقَّق الخانة من الخادم
     if (!LANG_CODES.includes(body.tutor)) return fail(res, 403, 'lang');
-    let g; try { g = await langGate(uid, plan, body.tutor); } catch (e) { console.error('[lang]', e && e.message); return fail(res, 503, 'err'); }
-    if (!g.ok) return send(res, 403, { error: MSG.langlimit, code: 'langlimit', langs: g.langs, limit: g.limit, plan });
+    let g; try { g = await langGate(uid, plan, body.tutor); } catch (e) { console.error('[lang]', e && e.message); await logErr('lang', e && e.message, uid); return fail(res, 503, 'err'); }
+    if (!g.ok) return send(res, 403, { error: MSG.langlimit, code: 'langlimit', langs: g.langs, limit: g.limit, allowed: g.allowed, plan });
   }
   if (plan === 'free' && freeDaily(ip)) return fail(res, 429, 'quota');
   // الرصيد من جهة الخادم (Firestore): لا يتأثر بمسح المتصفح أو بتعديل الواجهة
   let U = null;
   if (uid && saReady()) {
     U = await usage(uid, pinfo ? pinfo.i : 0, plan);
-    if (U && remaining(U, plan, pinfo && pinfo.k, tutor) <= 0) return send(res, 429, { error: MSG.quota, code: 'quota', quota: quotaView(U, plan) }); // يحمل وقت الخادم وموعد التجديد للعدّاد
+    if (U && remaining(U, plan, pinfo && pinfo.k, tutor) <= 0) return send(res, 429, { error: plan === 'free' ? MSG.quota : MSG.tokens, code: 'quota', quota: quotaView(U, plan) }); // يحمل وقت الخادم وموعد التجديد للعدّاد
   }
 
   const valid = [];
@@ -392,10 +394,15 @@ async function handle(req, res) {
   while (recent.length && recent[0].role !== 'user') recent.shift();
   if (!recent.length) return fail(res, 400, 'bad');
 
-  const bill = async (o) => { if (!U) return; try { await charge(U, uid, plan, tutor, cost(recent[recent.length - 1].content.length, o)); } catch (e) { console.error('[bill]', e && e.message); } };
+  const bill = async (o) => { if (!U) return; try { await charge(U, uid, plan, tutor, cost(recent[recent.length - 1].content.length, o)); } catch (e) { console.error('[bill]', e && e.message); await logErr('bill', e && e.message, uid); } };
   const messages = [];
+  // تعليمات المطوّر (لوحة المطوّر › المحتوى): «all» لكل الطلبات، وتعليمات اللغة فقط لطلبات المعلّم (التطبيق يرسل لغته في body.tutor)
+  let extra = '';
+  if (saReady()) { try { const P = await promptsGet(); extra = [P.all, LANG_CODES.includes(body.tutor) ? P[body.tutor] : ''].filter(Boolean).join('\n\n'); } catch (e) { extra = ''; } }
   if (typeof body.system === 'string' && body.system.trim()) {
-    messages.push({ role: 'system', content: body.system.slice(0, MAX_SYSTEM) });
+    messages.push({ role: 'system', content: body.system.slice(0, MAX_SYSTEM) + (extra ? '\n\n[ADMIN INSTRUCTIONS]\n' + extra : '') });
+  } else if (extra) {
+    messages.push({ role: 'system', content: '[ADMIN INSTRUCTIONS]\n' + extra });
   }
   messages.push(...recent);
 
@@ -443,10 +450,11 @@ async function handle(req, res) {
   } catch (e) {
     if (ac.signal.aborted) return;
     console.error('[moon] upstream failure:', e && e.message);
+    await logErr('upstream', e && e.message, uid);
     return fail(res, 502, 'conn');
   }
 
-  if (!up && pool.every((k) => H(k).bad > Date.now())) { console.error('[moon] ALL keys rejected (401/403) — تحقق من GROQ_KEY_n في Vercel'); return fail(res, 503, 'conf'); }
+  if (!up && pool.every((k) => H(k).bad > Date.now())) { console.error('[moon] ALL keys rejected (401/403) — تحقق من GROQ_KEY_n في Vercel'); await logErr('keys', 'all keys rejected (401/403)', uid); return fail(res, 503, 'conf'); }
 
   // كل المفاتيح مشغولة الآن: الواجهة لا تعرض خطأ، بل تنتظر بصمت وتعيد المحاولة تلقائيًا حتى يتحرر مفتاح
   if (!up) { res.setHeader('Retry-After', '4'); return fail(res, 503, 'busy'); }
@@ -458,6 +466,7 @@ async function handle(req, res) {
       let detail = '';
       try { detail = ((await up.res.json()).error || {}).message || ''; } catch (e) {}
       console.error('[moon] upstream error', up.res.status, String(detail).slice(0, 300));
+      await logErr('upstream_http', up.res.status + ': ' + String(detail).slice(0, 200), uid);
       return up.res.status === 413 ? fail(res, 413, 'bad') : fail(res, 502, 'err');
     }
     if (!stream) {
@@ -477,8 +486,8 @@ async function handle(req, res) {
         }
       }
     } catch (e) { /* انقطاع */ }
+    await bill(oc); // قبل إنهاء الرد: كي يرى طلب المزامنة التالي من التطبيق الرصيد بعد الخصم
     res.end();
-    await bill(oc);
   } finally {
     releaseKey();
     free(); // تحرير خانة التزامن فور انتهاء الرد (وليس فقط عند حدث close)
@@ -490,6 +499,7 @@ module.exports = async function handler(req, res) {
     await handle(req, res);
   } catch (e) { // شبكة أمان أخيرة: لا استثناءات ولا stack traces للمستخدم
     console.error('[moon] unhandled:', e && e.stack);
+    await logErr('unhandled', e && e.message, '');
     try { if (!res.headersSent) fail(res, 500, 'err'); else res.end(); } catch (x) {}
   }
 };
