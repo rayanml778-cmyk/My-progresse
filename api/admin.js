@@ -28,12 +28,13 @@
 //   reports_list { status? }   بلاغات المستخدمين (reports/{MP-XXXXXX}) + عدّاد الحالات   |   report_get { id }  تفاصيل + أخطاء الخادم لنفس الحساب
 //   report_set { id, st }      الحالة: new | review | solved | closed   |   report_reply { id, text, st? }  ردّ يراه المستخدم في تطبيقه   |   report_note { id, text }  ملاحظة خاصة بالمطوّر
 const crypto = require('crypto');
-const { adminInfo, secretInfo, sign, codeId, codeNorm, genCode, forget } = require('./_plan');
-const { saReady, fsGet, fsSet, fsCreate, fsDel, fsList, verifyIdTokenFull, authLookup, authList, authSetClaims, authDisable, audit, noticeGet, promptsGet, winMs, QDEF, qcfg, qcfgFrom, LDEF, lcfg, lcfgFrom, LFDEF, lfcfg } = require('./_fb');
+const { adminInfo, secretInfo, sign, codeId, codeNorm, genCode, forget, verifyToken } = require('./_plan');
+const { saReady, fsGet, fsSet, fsCreate, fsDel, fsList, verifyIdTokenFull, authLookup, authList, authSetClaims, authDisable, audit, noticeGet, promptsGet, winMs, QDEF, qcfg, qcfgFrom, LDEF, lcfg, lcfgFrom, LFDEF, lfcfg, markDisabled, rlCount, rlAdd, mtInc, mtRange, logErr, fsRange } = require('./_fb');
+const gh = require('./_gh'); // مدير الملفات عبر Git (GitHub REST)
 
 const OWNER = 'rayanml778@gmail.com'; // المالك الوحيد
 const DAY = 86400000;
-const bad = new Map();
+const bad = new Map(), dbf = new Set();
 const send = (res, code, obj) => {
   res.statusCode = code;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -103,6 +104,41 @@ async function entMap() {
   return m;
 }
 const activeOf = (e, now) => !!(e && +e.exp > now && !+e.rv);
+// استهلاك الرصيد الحالي لحساب (نفس منطق insights: لا يُحتسب إلا إن كانت نافذة الشحن سارية)
+function tokUse(f, e, now, cfg) {
+  const pl = activeOf(e, now) ? (e.pl === 'pro' ? 'pro' : 'premium') : 'free', W = winMs(pl, cfg), dd = Math.floor(now / DAY);
+  const g = pl === 'free' ? (+f.ex ? (now < f.ex + W ? +f.g || 0 : 0) : (f.d === dd ? +f.g || 0 : 0)) : (+f.ws && now < f.ws + W ? +f.g || 0 : 0);
+  return { pl, g, td: pl !== 'free' && f.d === dd ? +f.td || 0 : 0, tt: +f.tt || 0 };
+}
+// ---- تحليلات الاستخدام: التجميع من وثائق ua/{uid}_{day} (وقت نشط/خامل بالثواني + زيارات ووقت كل قسم) ----
+const DREG = /^\d{4}-\d{2}-\d{2}$/;
+const wkKey = (d) => { const t = Date.parse(d + 'T00:00:00Z'), dow = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - dow * DAY).toISOString().slice(0, 10); };
+const bkOf = (d, b) => (b === 'month' ? d.slice(0, 7) : b === 'week' ? wkKey(d) : d);
+function uaAgg(rows, bucket) {
+  const tot = { a: 0, i: 0, n: 0 }, sec = {}, ser = {}, ssr = {}, us = {}, days = new Set(), wks = new Set(), mos = new Set();
+  for (const { f } of rows) {
+    let j = {}; try { j = JSON.parse(f.j || '{}') || {}; } catch (e) { j = {}; }
+    const a = +f.a || 0, i = +f.i || 0, n = +f.n || 0, b = bkOf(f.d, bucket), T = j.t || {}, V = j.v || {};
+    tot.a += a; tot.i += i; tot.n += n;
+    if (a > 0) { days.add(f.u + f.d); wks.add(f.u + wkKey(f.d)); mos.add(f.u + f.d.slice(0, 7)); }
+    const s = ser[b] || (ser[b] = { a: 0, i: 0, n: 0, u: new Set() }); s.a += a; s.i += i; s.n += n; if (a > 0) s.u.add(f.u);
+    const sb = ssr[b] || (ssr[b] = {}), u = us[f.u] || (us[f.u] = { uid: f.u, a: 0, i: 0, n: 0, days: new Set(), sec: {}, last: 0 });
+    u.a += a; u.i += i; u.n += n; if (a > 0) u.days.add(f.d); u.last = Math.max(u.last, +f.last || 0);
+    for (const k of new Set([...Object.keys(T), ...Object.keys(V)])) {
+      const e = sec[k] || (sec[k] = { k, s: 0, v: 0, u: new Set() }); e.s += +T[k] || 0; e.v += +V[k] || 0; e.u.add(f.u);
+      sb[k] = (sb[k] || 0) + (+T[k] || 0); u.sec[k] = (u.sec[k] || 0) + (+T[k] || 0);
+    }
+  }
+  const secS = Object.values(sec).sort((x, y) => y.s - x.s), sumS = secS.reduce((x, y) => x + y.s, 0), sumV = secS.reduce((x, y) => x + y.v, 0);
+  const users = Object.values(us).sort((x, y) => y.a - x.a || y.i - x.i || (x.uid < y.uid ? -1 : 1)).map((u) => ({ uid: u.uid, a: u.a, i: u.i, n: u.n, days: u.days.size, avgSession: u.n ? Math.round(u.a / u.n) : 0, last: u.last,
+    top: Object.entries(u.sec).sort((x, y) => y[1] - x[1])[0] ? Object.entries(u.sec).sort((x, y) => y[1] - x[1])[0][0] : '', sec: u.sec }));
+  const avg = (x, d) => (d ? Math.round(x / d) : 0);
+  return { totals: { a: tot.a, i: tot.i, n: tot.n, users: users.length, activeUsers: users.filter((u) => u.a > 0).length, avgSession: avg(tot.a, tot.n), avgDay: avg(tot.a, days.size), avgWeek: avg(tot.a, wks.size), avgMonth: avg(tot.a, mos.size), idleShare: tot.a + tot.i ? Math.round(tot.i / (tot.a + tot.i) * 100) : 0 },
+    series: Object.keys(ser).sort().map((b) => ({ b, a: ser[b].a, i: ser[b].i, n: ser[b].n, u: ser[b].u.size })), secSeries: Object.keys(ssr).sort().map((b) => ({ b, t: ssr[b] })),
+    sections: secS.map((e) => ({ k: e.k, s: e.s, v: e.v, u: e.u.size, shareT: sumS ? Math.round(e.s / sumS * 1000) / 10 : 0, shareV: sumV ? Math.round(e.v / sumV * 1000) / 10 : 0 })), users };
+}
+// عمليات تُسجَّل في audit حتى عند فشلها (kind='fail')
+const SENS = new Set(['files_commit', 'mint', 'revoke', 'grant', 'pay_approve', 'pay_reject', 'bank_set', 'quota_set', 'lang_set', 'learn_set', 'learn_clear', 'user_set', 'notice_set', 'notice_clear', 'prompts_set', 'errors_clear', 'report_set', 'report_reply', 'report_note']);
 
 // ---- المصادقة ----
 async function authenticate(req) {
@@ -119,6 +155,7 @@ async function authenticate(req) {
 }
 
 module.exports = async function handler(req, res) {
+  let _by = '', _bu = '', _act = ''; // لتسجيل فشل العمليات الحساسة في الـ catch
   try {
     if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return send(res, 405, { code: 'method' }); }
     if (!saReady()) return send(res, 503, { code: 'conf' });
@@ -127,7 +164,8 @@ module.exports = async function handler(req, res) {
     const now = Date.now();
     const fails = (bad.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
     if (fails.length >= 10) return send(res, 429, { code: 'slow' });
-    const fail = async (why) => { fails.push(Date.now()); bad.set(ip, fails); if (bad.size > 500) bad.clear(); await sleep(700); return send(res, 403, why ? { code: 'forbidden', why } : { code: 'forbidden' }); };
+    if ((await rlCount('adm:' + ip, 600000).catch(() => 0)) >= 10) return send(res, 429, { code: 'slow' }); // حدّ مشترك بين النسخ
+    const fail = async (why) => { await mtInc({ af: 1 }); if (fails.length % 5 === 0) await logErr('admin_auth', 'forbidden', ''); /* سجل واحد لكل 5 محاولات من نفس العنوان: logErr له سقف 20/دقيقة لكل النسخة، فلا نسمح لهجوم تخمين بإغراقه وإخفاء أخطاء أخرى */ fails.push(Date.now()); bad.set(ip, fails); if (bad.size > 500) bad.clear(); await rlAdd('adm:' + ip, 600000).catch(() => {}); await sleep(700); return send(res, 403, why ? { code: 'forbidden', why } : { code: 'forbidden' }); };
 
     const a = await authenticate(req);
     if (!a) return fail();
@@ -137,7 +175,8 @@ module.exports = async function handler(req, res) {
     if (!body || typeof body !== 'object') return send(res, 400, { code: 'bad' });
     const act = String(body.action || '');
     const by = a.kind === 'token' ? a.email : 'secret', bu = a.uid || ''; // المسؤول الذي ينفّذ العملية (لسجل التدقيق)
-    const aud = (k, d) => audit(k, by, Object.assign({ bu }, d)).catch((e) => console.error('[audit]', e && e.message)); // فشل السجل لا يُفشل العملية
+    _by = by; _bu = bu; _act = act;
+    const aud = (k, d) => audit(k, by, Object.assign({ bu, r: 'ok' }, d)).catch((e) => console.error('[audit]', e && e.message)); // فشل السجل لا يُفشل العملية
 
     // أول مرة: منح حساب المالك صلاحية الإدارة. شرطان معًا: رمز المالك + ADMIN_SECRET (يعيّنه المالك في Vercel).
     if (act === 'bootstrap') {
@@ -182,6 +221,7 @@ module.exports = async function handler(req, res) {
       };
       const codes = [];
       for (let i = 0; i < count; i += 10) for (const c of await Promise.all(Array.from({ length: Math.min(10, count - i) }, make))) if (c) codes.push(c);
+      await aud('mint', { d: plan + ' · ' + k + ' · ' + codes.length + ' · ' + days + 'd · ' + bt });
       return send(res, 200, { codes, plan, period: k === 'w' ? 'week' : 'month', days, validUntil: xp, batch: bt });
     }
 
@@ -222,6 +262,7 @@ module.exports = async function handler(req, res) {
         if (wantInfo) return send(res, 200, { st: rec.st, plan: rec.p, days: rec.days, validUntil: rec.xp, usedBy: cl ? cl.u : '', usedAt: cl ? cl.at : 0, note: rec.note || '' });
         await fsSet('codes/' + id, Object.assign({}, rec, { st: 'revoked', rat: now, ce: '' }));
         const sub = cl && cl.u ? await revokeUid(cl.u, id) : false;
+        await aud('revoke', { u: cl && cl.u ? cl.u : '', d: 'code ' + id.slice(0, 8) + (sub ? ' +sub' : '') });
         return send(res, 200, { revokedCode: true, revokedSubscription: sub });
       }
       return send(res, 400, { code: 'bad' });
@@ -234,6 +275,7 @@ module.exports = async function handler(req, res) {
       if (q) list = q.includes('@') ? await authLookup({ email: [q] }) : UID.test(q) ? await authLookup({ localId: [q] }) : [];
       else { const r = await authList(100, String(body.cursor || '').slice(0, 2000)); list = r.users; next = r.next; }
       const ents = await entMap();
+      for (const u of list) if (u.disabled && !dbf.has(u.uid)) { dbf.add(u.uid); await markDisabled(u.uid, true).catch(() => dbf.delete(u.uid)); } // ترحيل الحسابات الموقوفة قبل هذا التحديث (مرة لكل نسخة)
       return send(res, 200, {
         next,
         users: list.map((u) => { const e = ents[u.uid]; return { uid: u.uid, email: u.email, name: u.name, verified: u.verified, disabled: u.disabled, created: u.created, last: u.last,
@@ -275,6 +317,7 @@ module.exports = async function handler(req, res) {
         try { await fsSet('payments/' + id, Object.assign({}, pay, { st: 'rejected', rv: now, rn })); }
         catch (e) { try { await fsDel('payclaim/' + id); } catch (e2) { /* يبقى القفل */ } throw e; }
         try { await setReq(pay.uid, id, { st: 'rejected', rv: now, rn }); } catch (e) { console.error('[admin] req', e && e.message); }
+        await aud('pay_no', { u: pay.uid, d: id + (rn ? ' · ' + rn.slice(0, 100) : '') });
         return send(res, 200, { rejected: true });
       }
       if (!PLANS.includes(pay.p) || (pay.k !== 'w' && pay.k !== 'm') || !UID.test(String(pay.uid))) { try { await fsDel('payclaim/' + id); } catch (e) { /* */ } return send(res, 400, { code: 'bad' }); }
@@ -283,6 +326,7 @@ module.exports = async function handler(req, res) {
       catch (e) { try { await fsDel('payclaim/' + id); } catch (e2) { /* يُحرَّر يدويًا */ } throw e; } // لم يُسلَّم اشتراك: يُحرَّر القفل لإعادة المحاولة
       try { await fsSet('payments/' + id, Object.assign({}, pay, { st: 'approved', rv: now, ex: r.exp })); await setReq(pay.uid, id, { st: 'approved', rv: now }); }
       catch (e) { console.error('[admin] mark', e && e.message); } // الاشتراك سُلِّم والقفل هو المرجع؛ الوسم للعرض فقط
+      await aud('pay_ok', { u: pay.uid, d: id + ' · ' + pay.p + ' · ' + pay.k + ' · ' + (+pay.amt || 0) });
       return send(res, 200, { approved: true, exp: r.exp });
     }
 
@@ -299,7 +343,7 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true, cfg: await qcfg(true) });
     }
     if (act === 'bank_get') { const b = await fsGet('config/bank'); return send(res, 200, { text: b ? b.text || '' : '' }); }
-    if (act === 'bank_set') { await fsSet('config/bank', { text: String(body.text || '').slice(0, 1500), at: now }); return send(res, 200, { ok: true }); }
+    if (act === 'bank_set') { const bt = String(body.text || '').slice(0, 1500); await fsSet('config/bank', { text: bt, at: now }); await aud('bank', { d: 'len ' + bt.length + ' · sha ' + crypto.createHash('sha256').update(bt).digest('hex').slice(0, 8) }); return send(res, 200, { ok: true }); } // النص نفسه لا يُسجَّل (بيانات مالية)
 
 
     // ---- سجل العمليات ----
@@ -321,6 +365,7 @@ module.exports = async function handler(req, res) {
       if (!u) return send(res, 404, { code: 'none' });
       if (String(u.email).toLowerCase() === OWNER) return send(res, 400, { code: 'bad', why: 'owner' }); // لا يُوقَف حساب المالك
       await authDisable(uid, body.disabled);
+      await markDisabled(uid, body.disabled); // يُبطل رموز الحساب الحالية فورًا (لا ينتظر انتهاءها)
       await aud(body.disabled ? 'disable' : 'enable', { u: uid, d: u.email || '' });
       return send(res, 200, { ok: true, disabled: body.disabled });
     }
@@ -404,11 +449,24 @@ module.exports = async function handler(req, res) {
 
     // ---- ميزات التعلّم: أعلام التشغيل + إحصاءات الاستخدام (config/learnflags، learnstats/{يوم}) ----
     if (act === 'learn_get') {
+      // عتبات الإنذار (نافذة آخر 3 أيام؛ لا إنذار قبل حدّ أدنى من العيّنات حتى لا نُنذر على ضجيج)
+      const TH = { win: 3, aiMin: 10, aiWarn: 0.2, aiCrit: 0.4, tagMin: 10, tagWarn: 0.6, tagCrit: 0.4, invMin: 10, invWarn: 0.25, btnMin: 10, btnWarn: 0.2 };
+      const learnAlerts = (ds) => {
+        const sm = {}; for (const d of ds.slice(0, TH.win)) for (const [k, v] of Object.entries(d.c || {})) sm[k] = (sm[k] || 0) + (+v || 0);
+        const n = (k) => sm[k] || 0, A = [], pc = (x) => Math.round(x * 100) + '%';
+        if (n('ac') >= TH.aiMin) { const r = n('af') / n('ac'); if (r >= TH.aiWarn) A.push({ id: 'ai', lv: r >= TH.aiCrit ? 'crit' : 'warn', msg: 'فشل توليد محتوى التعلّم بالذكاء الاصطناعي', val: pc(r), n: n('af') + '/' + n('ac') }); }
+        if (n('rc') >= TH.tagMin) { const r = n('rt') / n('rc'); if (r < TH.tagWarn) A.push({ id: 'tags', lv: r < TH.tagCrit ? 'crit' : 'warn', msg: 'انخفاض التزام AI بوسم التصحيحات (لا تُحفظ نقاط الضعف للردود غير الموسومة)', val: pc(r), n: n('rt') + '/' + n('rc') }); }
+        const tot = n('tw') + n('tl') + n('ti');
+        if (tot >= TH.invMin) { const r = n('ti') / tot; if (r >= TH.invWarn) A.push({ id: 'inv', lv: 'warn', msg: 'نسبة عالية من الوسوم غير الصالحة (معرّفات دروس خاطئة)', val: pc(r), n: n('ti') + '/' + tot }); }
+        const bt = n('bo') + n('be');
+        if (bt >= TH.btnMin) { const r = n('bf') / bt; if (r >= TH.btnWarn) A.push({ id: 'btn', lv: 'warn', msg: 'فشل أزرار فتح الدرس/التمارين من المحادثة', val: pc(r), n: n('bf') + '/' + bt }); }
+        return A;
+      };
       const rows = await fsList('learnstats', ['j']);
       rows.sort((x, y) => (x.id < y.id ? 1 : -1));
       if (rows.length > 60) await Promise.all(rows.slice(60, 110).map((r) => fsDel('learnstats/' + r.id).catch(() => {}))); // تقليم تلقائي
       const days = rows.slice(0, 14).map(({ id, f }) => { let o = {}; try { o = JSON.parse(f.j || '{}'); } catch (e) { o = {}; } return { d: id, c: (o && o.c) || {}, w: (o && o.w) || {} }; });
-      return send(res, 200, { flags: await lfcfg(true), defaults: LFDEF, days });
+      return send(res, 200, { flags: await lfcfg(true), defaults: LFDEF, days, alerts: learnAlerts(days), th: TH });
     }
     if (act === 'learn_set') {
       const prev = await lfcfg(true), fl = body.flags && typeof body.flags === 'object' ? body.flags : {}, next = {};
@@ -466,16 +524,238 @@ module.exports = async function handler(req, res) {
       return send(res, 200, { ok: true, st: o.st, up: o.up || 0, rat: o.rat || 0 });
     }
 
+    // =====================================================================
+    // لوحة المطوّر الاحترافية — إجراءات جديدة (قراءة فقط ما لم يُذكر). كلها بعد authenticate + a.owner أعلاه.
+    // =====================================================================
+    if (act === 'metrics_range') { // مقاييس Moon AI اليومية (metrics/*): تبدأ من تاريخ تفعيل هذا التحديث، ولا تُقدَّر بأثر رجعي
+      const rows = await mtRange(int(body.days, 30, 1, 120));
+      return send(res, 200, { days: rows, since: rows.length ? rows[0].d : '' });
+    }
+    if (act === 'health') { // اختبارات اتصال فعلية (لا مجرد وجود الإعدادات). لا تُعاد أي أسرار؛ أسماء/منطق فقط
+      const timed = async (fn) => { const t = Date.now(); try { await fn(); return { ok: true, ms: Date.now() - t }; } catch (e) { const m = sdet(e); return { ok: false, ms: Date.now() - t, err: m !== 'unknown' ? m : String((e && e.message) || 'err').replace(/[^A-Za-z0-9_:. -]/g, '').slice(0, 40) }; } };
+      const gnames = Object.keys(process.env).filter((n) => /^GROQ_KEY_\d+$/.test(n) && String(process.env[n]).trim());
+      const gk = gnames.length ? String(process.env[gnames[0]]).trim().replace(/^["']|["']$/g, '') : '';
+      const [fa, fs, groq, errs] = await Promise.all([
+        timed(() => authList(1, '')),
+        timed(() => fsGet('config/notice')),
+        gk ? timed(async () => { const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 5000); try { const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: 'Bearer ' + gk }, signal: ac.signal }); if (!r.ok) throw new Error('http' + r.status); } finally { clearTimeout(tm); } }) : Promise.resolve({ ok: null, why: 'no_key' }),
+        fsList('errors', ['t', 'k']).then((r) => ({ ok: true, h1: r.filter((x) => x.f.t > now - 36e5).length, h24: r.filter((x) => x.f.t > now - DAY).length })).catch(() => ({ ok: false })),
+      ]);
+      return send(res, 200, { at: now, services: { auth: fa, firestore: fs, groq, api: { ok: true, ms: Date.now() - now } }, errors: errs,
+        config: { sa: saReady(), plan_secret: secretInfo().ok, admin_secret: adminInfo().ok, cron_secret: String(process.env.CRON_SECRET || '').length >= 16, groq_keys: gnames.length, model: String(process.env.GROQ_MODEL || '').replace(/[^A-Za-z0-9_./:-]/g, '').slice(0, 60) } });
+    }
+    if (act === 'security') {
+      const [er, dis, mt, au] = await Promise.all([fsList('errors', ['t', 'k', 'm', 'u']), fsList('disabled', ['at']), mtRange(14), fsList('audit', ['t', 'k', 'by', 'u', 'd'])]);
+      const cnt = (since) => { const o = {}; for (const { f } of er) if (f.t > since) o[f.k] = (o[f.k] || 0) + 1; return o; };
+      const c24 = cnt(now - DAY), c7 = cnt(now - 7 * DAY), today = new Date(now).toISOString().slice(0, 10);
+      const tdy = (k) => { const r = mt.find((x) => x.d === today); return r ? +r.c[k] || 0 : 0; };
+      const alerts = [], add = (lv, id, n) => alerts.push({ lv, id, n });
+      if (c24.keys) add('crit', 'keys', c24.keys);
+      if (c24.unhandled) add(c24.unhandled >= 5 ? 'crit' : 'warn', 'unhandled', c24.unhandled);
+      if ((c24.upstream || 0) + (c24.upstream_http || 0) >= 10) add('warn', 'upstream', (c24.upstream || 0) + (c24.upstream_http || 0));
+      if (c24.admin_auth >= 10) add(c24.admin_auth >= 30 ? 'crit' : 'warn', 'admin_auth', c24.admin_auth);
+      if (c24.activate >= 10) add('warn', 'activate', c24.activate);
+      if (c24.bill) add('warn', 'bill', c24.bill);
+      if (tdy('qx') >= 20) add('info', 'quota', tdy('qx'));
+      if (dis.length) add('info', 'disabled', dis.length);
+      const em = await emailsFor(dis.slice(0, 100).map((r) => r.id));
+      const SEC = /^(keys|unhandled|admin_auth|activate|lang|upstream|upstream_http|bill)$/;
+      return send(res, 200, { alerts, c24, c7,
+        disabled: dis.slice(0, 100).map((r) => ({ uid: r.id, email: em[r.id] || '', at: r.f.at || 0 })),
+        series: { af: mt.map((x) => ({ d: x.d, v: +x.c.af || 0 })), qx: mt.map((x) => ({ d: x.d, v: +x.c.qx || 0 })) },
+        events: er.filter(({ f }) => SEC.test(f.k)).sort((x, y) => (y.f.t || 0) - (x.f.t || 0)).slice(0, 100).map(({ id, f }) => ({ id, t: f.t || 0, k: f.k, m: f.m || '', u: f.u || '' })),
+        admin: au.filter(({ f }) => /^(disable|enable|revoke|fail|bank)$/.test(f.k)).sort((x, y) => (y.f.t || 0) - (x.f.t || 0)).slice(0, 20).map(({ id, f }) => ({ id, t: f.t || 0, k: f.k, by: f.by || '', u: f.u || '', d: String(f.d || '').slice(0, 120) })),
+        unavailable: ['login_failures', 'token_errors'] });
+    }
+    if (act === 'user_detail') {
+      const uid = String(body.uid || ''); if (!UID.test(uid)) return send(res, 400, { code: 'bad' });
+      const [u] = await authLookup({ localId: [uid] }); if (!u) return send(res, 404, { code: 'none' });
+      const [ent, usg, pays, au, cfg] = await Promise.all([fsGet('entitlements/' + uid).catch(() => null), fsGet('usage/' + uid).catch(() => null),
+        fsList('payments', ['uid', 'p', 'k', 'amt', 'st', 'cr', 'rv', 'ex', 'ref']), fsList('audit', ['t', 'k', 'by', 'u', 'd', 'r']), qcfg()]);
+      const tu = tokUse(usg || {}, ent, now, cfg), L = cfg[tu.pl] || cfg.free;
+      const src = ent && ent.cid ? (String(ent.cid).startsWith('pay-') ? 'bank' : String(ent.cid).startsWith('adm-') ? 'admin' : 'code') : '';
+      return send(res, 200, {
+        user: { uid, email: u.email, name: u.name, verified: u.verified, disabled: u.disabled, created: u.created, last: u.last, owner: String(u.email).toLowerCase() === OWNER },
+        sub: { plan: activeOf(ent, now) ? ent.pl : '', exp: ent ? +ent.exp || 0 : 0, revoked: ent ? +ent.rv || 0 : 0, at: ent ? +ent.at || 0 : 0, src },
+        usage: { plan: tu.pl, window: tu.g, tutor: tu.td, life: tu.tt, limit: L.tokens, tutorLimit: L.tutor || 0, started: usg ? +usg.ws || 0 : 0 },
+        payments: pays.filter((r) => r.f.uid === uid).sort((x, y) => (y.f.cr || 0) - (x.f.cr || 0)).slice(0, 20).map(({ id, f }) => ({ id, p: f.p, k: f.k, amt: f.amt, st: f.st, cr: f.cr || 0, ex: f.ex || 0, ref: f.ref || '' })),
+        actions: au.filter((r) => r.f.u === uid).sort((x, y) => (y.f.t || 0) - (x.f.t || 0)).slice(0, 30).map(({ id, f }) => ({ id, t: f.t || 0, k: f.k, by: f.by || '', d: String(f.d || '').slice(0, 160), r: f.r || 'ok' })) });
+    }
+    if (act === 'subs_list') {
+      const rows = await fsList('entitlements', ['tok', 'pl', 'exp', 'rv', 'cid', 'at']);
+      const em = await emailsFor(rows.map((r) => r.id).slice(0, 1000));
+      const sum = { active: 0, expiring7: 0, expired: 0, revoked: 0, premium: 0, pro: 0, invalid: 0 };
+      const items = rows.map(({ id, f }) => {
+        const p = f.tok ? verifyToken(f.tok) : null, state = +f.rv ? 'revoked' : +f.exp > now ? 'active' : 'expired', valid = !!(p && p.u === id && !+f.rv);
+        sum[state]++; if (state === 'active') { sum[f.pl === 'pro' ? 'pro' : 'premium']++; if (f.exp < now + 7 * DAY) sum.expiring7++; if (!valid) sum.invalid++; }
+        const src = f.cid ? (String(f.cid).startsWith('pay-') ? 'bank' : String(f.cid).startsWith('adm-') ? 'admin' : 'code') : '';
+        return { uid: id, email: em[id] || '', pl: f.pl || '', exp: +f.exp || 0, rv: +f.rv || 0, at: +f.at || 0, src, state, valid };
+      }).sort((x, y) => y.exp - x.exp).slice(0, 800);
+      return send(res, 200, { items, sum });
+    }
+    if (act === 'audit_page') { // سجل نشاط المطوّر: ترشيح + ترقيم من الخادم
+      const kind = String(body.kind || '').replace(/[^a-z_]/g, '').slice(0, 20), rs = body.result === 'fail' ? 'fail' : body.result === 'ok' ? 'ok' : '';
+      const q = String(body.q || '').trim().toLowerCase().slice(0, 80), from = +body.from || 0, to = +body.to || 0, off = int(body.offset, 0, 0, 100000), lim = int(body.limit, 25, 5, 100);
+      let rows = await fsList('audit', ['t', 'k', 'by', 'bu', 'u', 'd', 'pv', 'nv', 'r', 'er']);
+      rows = rows.filter(({ f }) => (!kind || f.k === kind || (kind === 'file' && /^file_/.test(f.k))) && (!rs || (f.r || 'ok') === rs) && (!from || f.t >= from) && (!to || f.t <= to) && (!q || [f.by, f.u, f.d, f.k].some((v) => String(v || '').toLowerCase().includes(q))));
+      rows.sort((x, y) => (y.f.t || 0) - (x.f.t || 0));
+      const items = rows.slice(off, off + lim).map(({ id, f }) => Object.assign({ id, r: 'ok' }, f));
+      const em = await emailsFor([...new Set(items.map((x) => x.u).filter(Boolean))]);
+      return send(res, 200, { total: rows.length, offset: off, items: items.map((x) => Object.assign(x, { ue: em[x.u] || '' })) });
+    }
+    if (act === 'ai_overview') {
+      const [usg, ents, cfg, mt] = await Promise.all([fsList('usage', ['g', 'td', 'tt', 'd', 'ws', 'ex']), entMap(), qcfg(), mtRange(30)]);
+      const near = [], byPlan = { free: { n: 0, w: 0 }, premium: { n: 0, w: 0 }, pro: { n: 0, w: 0 } };
+      for (const { id, f } of usg) {
+        const tu = tokUse(f, ents[id], now, cfg), lim = (cfg[tu.pl] || cfg.free).tokens, pct = lim ? tu.g / lim : 0;
+        byPlan[tu.pl].n++; byPlan[tu.pl].w += tu.g;
+        if (pct >= 0.8) near.push({ uid: id, pl: tu.pl, g: tu.g, lim, pct: Math.round(pct * 100) });
+      }
+      near.sort((x, y) => y.pct - x.pct); const top = near.slice(0, 15), em = await emailsFor(top.map((x) => x.uid));
+      const anomalies = [];
+      for (const x of near.filter((y) => y.pct >= 95).slice(0, 10)) anomalies.push({ lv: 'warn', id: 'near_limit', uid: x.uid, v: x.pct });
+      const tot = (x) => (+x.c.t_free || 0) + (+x.c.t_premium || 0) + (+x.c.t_pro || 0);
+      for (const x of mt) if ((+x.c.rq || 0) >= 20 && (+x.c.er || 0) / x.c.rq >= 0.2) anomalies.push({ lv: x.c.er / x.c.rq >= 0.4 ? 'crit' : 'warn', id: 'fail_rate', d: x.d, v: Math.round((x.c.er / x.c.rq) * 100) });
+      if (mt.length >= 8) { const last = mt[mt.length - 1], prev = mt.slice(0, -1).map(tot), mean = prev.reduce((a, b) => a + b, 0) / prev.length, sd = Math.sqrt(prev.reduce((a, b) => a + (b - mean) ** 2, 0) / prev.length); if (tot(last) > mean + 3 * sd && tot(last) > 1000) anomalies.push({ lv: 'warn', id: 'token_spike', d: last.d, v: tot(last), mean: Math.round(mean) }); }
+      const price = parseFloat(process.env.AI_PRICE_PER_MTOK), t30 = mt.reduce((a, x) => a + tot(x), 0);
+      return send(res, 200, { near: top.map((x) => Object.assign(x, { email: em[x.uid] || '' })), byPlan, anomalies, limits: cfg, cost: Number.isFinite(price) && price > 0 ? { perMTok: price, est30: Math.round((t30 / 1e6) * price * 100) / 100 } : null });
+    }
+    if (act === 'report_data') {
+      const n = int(body.days, 30, 7, 180), ds = (t) => new Date(t).toISOString().slice(0, 10), dates = [];
+      for (let i = n - 1; i >= 0; i--) dates.push(ds(now - i * DAY));
+      const ix = {}; dates.forEach((d, i) => { ix[d] = i; });
+      const z = () => Array(n).fill(0), out = { dates, signups: z(), lastLogin: z(), revenueCents: z(), paysApproved: z(), subsGranted: z(), codesUsed: z(), errors: {}, partial: false };
+      const users = []; let cur = '';
+      for (let i = 0; i < 10; i++) { const r = await authList(1000, cur); users.push(...r.users); cur = r.next; if (!cur) break; }
+      out.partial = !!cur;
+      for (const u of users) { const a = ix[ds(u.created || 0)], b = ix[ds(u.last || 0)]; if (a !== undefined) out.signups[a]++; if (b !== undefined) out.lastLogin[b]++; }
+      const [pays, au, codes, er, mt] = await Promise.all([fsList('payments', ['st', 'amt', 'rv']), fsList('audit', ['t', 'k']), fsList('codes', ['st', 'at']), fsList('errors', ['t', 'k']), mtRange(n)]);
+      for (const { f } of pays) if (f.st === 'approved') { const i = ix[ds(f.rv || 0)]; if (i !== undefined) { out.revenueCents[i] += +f.amt || 0; out.paysApproved[i]++; } }
+      for (const { f } of au) if (f.k === 'grant' || f.k === 'pay_ok') { const i = ix[ds(f.t || 0)]; if (i !== undefined) out.subsGranted[i]++; }
+      for (const { f } of codes) if (f.st === 'used') { const i = ix[ds(f.at || 0)]; if (i !== undefined) out.codesUsed[i]++; }
+      for (const { f } of er) { const i = ix[ds(f.t || 0)]; if (i === undefined) continue; (out.errors[f.k] = out.errors[f.k] || z())[i]++; }
+      out.ai = mt;
+      return send(res, 200, out);
+    }
+    if (act === 'export_log') { await aud('export', { d: String(body.what || '').replace(/[^a-z_]/g, '').slice(0, 30) }); return send(res, 200, { ok: true }); }
+
+    // =====================================================================
+    // الجولة 2: تحليلات استخدام المستخدمين (ua/*) + مدير الملفات عبر Git. للمالك فقط (تحقق الخادم أعلاه).
+    // =====================================================================
+    if (act === 'ua_overview' || act === 'ua_user') {
+      const to = DREG.test(String(body.to || '')) ? body.to : new Date(now).toISOString().slice(0, 10);
+      const from = DREG.test(String(body.from || '')) ? body.from : new Date(now - 29 * DAY).toISOString().slice(0, 10);
+      if (from > to || Date.parse(to + 'T00:00:00Z') - Date.parse(from + 'T00:00:00Z') > 366 * DAY) return send(res, 400, { code: 'bad' });
+      const bucket = ['day', 'week', 'month'].includes(body.bucket) ? body.bucket : 'day';
+      let rows = await fsRange('ua', 'd', from, to, ['u', 'd', 'a', 'i', 'n', 'j', 'last'], 20000);
+      const truncated = rows.length >= 20000;
+      if (act === 'ua_user') {
+        let uid = String(body.uid || ''); const q = String(body.q || '').trim();
+        if (!UID.test(uid)) { if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(q)) { const [x] = await authLookup({ email: [q.toLowerCase()] }); uid = x ? x.uid : ''; } else uid = q; }
+        if (!UID.test(uid)) return send(res, 404, { code: 'none' });
+        const [u] = await authLookup({ localId: [uid] }); if (!u) return send(res, 404, { code: 'none' });
+        rows = rows.filter((r) => r.f.u === uid);
+        return send(res, 200, Object.assign(uaAgg(rows, bucket), { user: { uid, email: u.email, name: u.name, created: u.created, last: u.last }, from, to, bucket, truncated }));
+      }
+      const g = uaAgg(rows, bucket), top = g.users.slice(0, 50), em = await emailsFor(top.map((x) => x.uid));
+      return send(res, 200, Object.assign(g, { users: top.map((x) => Object.assign(x, { email: em[x.uid] || '' })), usersTotal: g.users.length, rows: rows.length, from, to, bucket, truncated }));
+    }
+    if (act.startsWith('files_')) {
+      if (a.kind !== 'token') return send(res, 403, { code: 'forbidden', need: 'token' }); // تعديل الكود لا يُسمح به عبر السرّ القديم ADMIN_SECRET: رمز Firebase للمالك فقط
+      const C = gh.cfg();
+      if (act === 'files_config') return send(res, 200, { enabled: C.enabled, missing: C.missing, repo: C.enabled ? C.repo : '', branch: C.branch, prod: C.prod, safe: C.branch !== C.prod, limits: { text: gh.MAX_TEXT, bin: gh.MAX_BIN, files: gh.MAX_FILES } });
+      if (!C.enabled) return send(res, 503, { code: 'gh_off' });
+      const deny = async (code, st, p) => { await audit('file_denied', by, { bu, r: 'fail', d: code + ' · ' + String(p || '').slice(0, 120) }).catch(() => {}); return send(res, st, { code }); };
+      try {
+        if (act === 'files_tree') {
+          const s = await gh.snapshot(); let hidden = 0; const items = [];
+          for (const x of s.tree) { const c = gh.classify(x.path); if (c.lv === 'blocked') { hidden++; continue; } items.push({ p: x.path, s: x.size || 0, sha: x.sha, lv: c.lv }); }
+          return send(res, 200, { branch: C.branch, head: s.head, truncated: s.truncated, hidden, items: items.slice(0, 5000) });
+        }
+        if (act === 'files_read' || act === 'files_history') {
+          const path = String(body.path || ''), c = gh.classify(path); if (c.lv === 'blocked') return deny('blocked', 403, path);
+          if (act === 'files_history') return send(res, 200, { path, items: await gh.history(path) });
+          const ref = String(body.ref || C.branch); if (ref !== C.branch && !/^[0-9a-f]{7,40}$/.test(ref)) return send(res, 400, { code: 'bad' });
+          const r = await gh.readAt(path, ref), meta = { path, sha: r.sha, size: r.size, lv: c.lv, ref, text: gh.isText(path) };
+          if (!meta.text) return send(res, 200, Object.assign(meta, { bin: true }));
+          if (!r.buf) return send(res, 200, Object.assign(meta, { big: true }));
+          const t = r.buf.toString('utf8'); if (gh.hasSecret(t)) return deny('secret', 403, path);
+          if (c.lv === 'sensitive') await aud('file_read', { d: path });
+          return send(res, 200, Object.assign(meta, { content: t }));
+        }
+        if (act === 'files_commit') {
+          const list = Array.isArray(body.changes) ? body.changes : [];
+          if (!list.length || list.length > gh.MAX_FILES) return send(res, 400, { code: 'bad' });
+          const snap = await gh.snapshot(), at = new Map(snap.tree.map((x) => [x.path, x])), out = [], logs = [], seen = new Set(); let total = 0;
+          for (const ch of list) {
+            const op = String(ch.op || ''), path = String(ch.path || ''), cl = gh.classify(path), cur = at.get(path), ack = String(ch.ack || '');
+            if (!['save', 'create', 'mkdir', 'rename', 'delete', 'upload', 'restore'].includes(op)) return send(res, 400, { code: 'bad' });
+            if (cl.lv === 'blocked') return deny('blocked', 403, path);
+            if (cl.lv === 'readonly') return deny('readonly', 403, path);
+            if (seen.has(path)) return send(res, 400, { code: 'bad' }); seen.add(path);
+            const needAck = (force) => (force || cl.lv === 'sensitive') && ack !== path;
+            const base = String(ch.base || '');
+            if (op === 'mkdir') {
+              if (path.split('/').pop().startsWith('.')) return deny('bad_path', 400, path);
+              if (snap.tree.some((x) => x.path.startsWith(path + '/'))) return send(res, 409, { code: 'exists' });
+              out.push({ path: path + '/.gitkeep', buf: Buffer.alloc(0) }); logs.push(['file_mkdir', path, '']); continue;
+            }
+            if (op === 'rename') {
+              const to = String(ch.to || ''), ct = gh.classify(to);
+              if (ct.lv === 'blocked') return deny('blocked', 403, to); if (ct.lv === 'readonly') return deny('readonly', 403, to);
+              if (!cur) return send(res, 404, { code: 'none' }); if (at.has(to) || seen.has(to)) return send(res, 409, { code: 'exists' });
+              if (!gh.allowedExt(to) || gh.ext(to) !== gh.ext(path)) return send(res, 400, { code: 'bad_type' });
+              if (base && base !== cur.sha) return send(res, 409, { code: 'conflict' });
+              if ((cl.lv === 'sensitive' || ct.lv === 'sensitive') && ack !== path) return send(res, 400, { code: 'ack' });
+              seen.add(to); out.push({ path, del: true }, { path: to, sha: cur.sha }); logs.push(['file_rename', path + ' → ' + to, cur.sha.slice(0, 7)]); continue;
+            }
+            if (op === 'delete') {
+              if (!cur) return send(res, 404, { code: 'none' }); if (base !== cur.sha) return send(res, 409, { code: 'conflict' });
+              if (ack !== path) return send(res, 400, { code: 'ack' });
+              out.push({ path, del: true }); logs.push(['file_delete', path, cur.sha.slice(0, 7)]); continue;
+            }
+            let buf;
+            if (op === 'create' || op === 'save') {
+              if (typeof ch.text !== 'string') return send(res, 400, { code: 'bad' });
+              buf = Buffer.from(ch.text, 'utf8');
+              if (op === 'create') { if (cur) return send(res, 409, { code: 'exists' }); if (!gh.allowedExt(path)) return send(res, 400, { code: 'bad_type' }); if (needAck()) return send(res, 400, { code: 'ack' }); }
+              else { if (!cur) return send(res, 404, { code: 'none' }); if (base !== cur.sha) return send(res, 409, { code: 'conflict' }); if (!gh.isText(path)) return send(res, 400, { code: 'bad_type' }); if (needAck()) return send(res, 400, { code: 'ack' }); }
+            } else if (op === 'upload') {
+              if (typeof ch.b64 !== 'string' || ch.b64.length > 4e6 || !/^[A-Za-z0-9+\/=\s]*$/.test(ch.b64)) return send(res, 400, { code: 'bad' });
+              buf = Buffer.from(ch.b64, 'base64'); if (!gh.allowedExt(path)) return send(res, 400, { code: 'bad_type' });
+              if (cur) { if (base !== cur.sha) return send(res, 409, { code: 'conflict' }); if (ack !== path) return send(res, 400, { code: 'ack' }); } else if (needAck()) return send(res, 400, { code: 'ack' });
+            } else { // restore
+              const ref = String(ch.ref || ''); if (!/^[0-9a-f]{7,40}$/.test(ref)) return send(res, 400, { code: 'bad' });
+              if (cur && base !== cur.sha) return send(res, 409, { code: 'conflict' }); if (ack !== path) return send(res, 400, { code: 'ack' });
+              const r = await gh.readAt(path, ref); if (!r.buf) return send(res, 400, { code: 'too_big' }); buf = r.buf;
+            }
+            const bad = gh.checkContent(path, buf);
+            if (bad) return bad === 'secret' || bad === 'svg_script' ? deny(bad, 400, path) : send(res, 400, { code: bad });
+            total += buf.length; if (total > gh.MAX_TOTAL) return send(res, 413, { code: 'too_big' });
+            out.push({ path, buf }); logs.push(['file_' + op, path, cur ? cur.sha.slice(0, 7) : '']);
+          }
+          const sm = String(body.message || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 120) || (logs.length === 1 ? logs[0][0].slice(5) + ' ' + logs[0][1] : logs.length + ' files');
+          const sha = await gh.commit(out, '[dev-panel] ' + sm + '\n\nDev-Panel-Actor: ' + by);
+          for (const [k, p, old] of logs) await aud(k, { d: p + ' · ' + sha.slice(0, 7), pv: old });
+          return send(res, 200, { commit: sha, branch: C.branch, n: out.length, preview: C.branch !== C.prod, repo: C.repo });
+        }
+        return send(res, 400, { code: 'bad' });
+      } catch (e) {
+        if (e && /^gh_/.test(e.message)) { await audit('fail', by, { bu, r: 'fail', d: act, er: e.message }).catch(() => {}); return send(res, e.message === 'gh_conflict' ? 409 : 502, { code: e.message }); }
+        throw e;
+      }
+    }
+
     // ---- الإحصائيات ----
     if (act === 'stats') {
       const users = []; let cur = '';
       for (let i = 0; i < 10; i++) { const r = await authList(1000, cur); users.push(...r.users); cur = r.next; if (!cur) break; }
       const [ents, codes, pays] = await Promise.all([entMap(), fsList('codes', ['p', 'st', 'xp']), fsList('payments', ['st', 'p', 'amt', 'cr'])]);
       const d0 = Math.floor(now / DAY), sign14 = Array(14).fill(0);
-      let n7 = 0, n30 = 0, a7 = 0, dis = 0;
+      let n7 = 0, n30 = 0, a7 = 0, a1 = 0, a30 = 0, dis = 0;
       for (const u of users) {
         if (u.created > now - 7 * DAY) n7++; if (u.created > now - 30 * DAY) n30++;
-        if (u.last > now - 7 * DAY) a7++; if (u.disabled) dis++;
+        if (u.last > now - 7 * DAY) a7++; if (u.last > now - DAY) a1++; if (u.last > now - 30 * DAY) a30++; if (u.disabled) dis++;
         const k = d0 - Math.floor(u.created / DAY); if (k >= 0 && k < 14) sign14[13 - k]++;
       }
       const sub = { premium: 0, pro: 0, expired: 0, revoked: 0 };
@@ -484,11 +764,12 @@ module.exports = async function handler(req, res) {
       for (const { f } of codes) { if (f.st === 'new' && f.xp && f.xp < now) cd.expired++; else if (cd[f.st] !== undefined) cd[f.st]++; if (cd[f.p] !== undefined) cd[f.p]++; }
       const py = { pending: 0, approved: 0, rejected: 0, revenueCents: 0, revenue30Cents: 0 };
       for (const { f } of pays) { if (py[f.st] !== undefined) py[f.st]++; if (f.st === 'approved') { py.revenueCents += +f.amt || 0; if (f.cr > now - 30 * DAY) py.revenue30Cents += +f.amt || 0; } }
-      return send(res, 200, { users: { total: users.length, new7: n7, new30: n30, active7: a7, disabled: dis, signups14: sign14 }, subs: sub, codes: cd, payments: py, partial: !!cur });
+      return send(res, 200, { users: { total: users.length, new7: n7, new30: n30, active7: a7, active1: a1, active30: a30, disabled: dis, signups14: sign14 }, subs: sub, codes: cd, payments: py, partial: !!cur });
     }
     return send(res, 400, { code: 'bad' });
   } catch (e) {
     console.error('[admin]', e && e.message);
+    if (_by && SENS.has(_act)) await audit('fail', _by, { bu: _bu, r: 'fail', d: _act, er: sdet(e) }).catch(() => {});
     return send(res, 500, { code: 'err' });
   }
 };
