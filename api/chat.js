@@ -17,7 +17,8 @@
 //   (عدّاد توكن بريميوم/برو: الكمية ومدة التعبئة تُضبط من لوحة المطوّر ← الإعدادات، وتُحفظ في config/ai)
 //   FREE_DAILY_REQ       سقف طلبات المجاني يوميًا لكل IP (الافتراضي 300) — حماية احتياطية فقط
 
-const { activePlan, planSecretOk } = require('./_plan');
+const crypto = require('crypto');
+const { activePlan, planSecretOk, adminInfo } = require('./_plan');
 const { verifyIdToken, saReady, usage, remaining, cost, charge, quotaView, fsGet, fsCreate, logErr, promptsGet, lcfg } = require('./_fb');
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
@@ -314,7 +315,10 @@ function leanPayload(p) {
   const sys = p.messages.find((m) => m.role === 'system');
   const out = { ...p, messages: [], max_completion_tokens: Math.min(p.max_completion_tokens, 1024) };
   delete out.tools; delete out.tool_choice;
-  if (out.reasoning_effort) out.reasoning_effort = 'low';
+  // حدود Groq تُحسب لكل نموذج: عند استنفاد حصة النموذج الرئيسي نحوّل الطلب لنموذج احتياطي بحصة مستقلة
+  const fb = process.env.GROQ_FALLBACK_MODEL || 'llama-3.1-8b-instant';
+  if (fb !== '0' && fb !== p.model) { out.model = fb; delete out.reasoning_effort; }
+  else if (out.reasoning_effort) out.reasoning_effort = 'low';
   if (sys) out.messages.push({ role: 'system', content: sys.content.split('\n\n[APP CONTEXT]')[0] });
   out.messages.push(...msgs);
   return out;
@@ -338,6 +342,10 @@ async function handle(req, res) {
   }
   if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
   if (req.method === 'GET' && String(req.url || '').includes('diag')) {
+    // التشخيص (عدد المفاتيح، النموذج، حالة الأسرار) لصاحب ADMIN_SECRET فقط؛ الزائر المجهول لا يرى إلا {ok:true}
+    const ai = adminInfo(), got = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    const h = (s) => crypto.createHash('sha256').update(String(s)).digest();
+    if (!(ai.ok && got && crypto.timingSafeEqual(h(got), h(ai.s)))) return send(res, 200, { ok: true });
     return send(res, 200, { keys: discoverKeys().length, model: process.env.GROQ_MODEL || DEFAULT_MODEL, requireAuth: process.env.REQUIRE_AUTH !== '0', serviceAccount: saReady(), planSecret: planSecretOk() });
   }
   if (req.method !== 'POST') {
